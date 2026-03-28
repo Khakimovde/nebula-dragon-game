@@ -18,6 +18,7 @@ const GameScreen: React.FC = () => {
   }, [loseLife]);
 
   const handleRestart = () => {
+    if (user.lives <= 0) return; // Don't allow restart with no lives
     setGameOver(false);
     setGameKey(prev => prev + 1);
   };
@@ -25,16 +26,46 @@ const GameScreen: React.FC = () => {
   const handleAdReward = () => {
     const newCount = adsWatched + 1;
     setAdsWatched(newCount);
-    // Ad only gives lives, NOT stars
     if (newCount >= 5) {
       restoreLives();
       setAdsWatched(0);
     }
   };
 
+  // If user has no lives (even on fresh load), show no-lives screen
+  const noLives = user.lives <= 0;
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] px-2">
-      {!gameOver ? (
+      {noLives && !gameOver ? (
+        // Fresh load with 0 lives - must watch ads
+        <div className="game-card flex flex-col items-center gap-4 w-full max-w-sm animate-[slideUp_0.3s_ease]">
+          <h2 className="font-display text-2xl text-destructive">JONLAR TUGADI!</h2>
+          <div className="flex items-center gap-1 mb-2">
+            {[...Array(3)].map((_, i) => (
+              <Heart key={i} size={24} className="text-muted-foreground" fill="none" />
+            ))}
+          </div>
+          <div className="flex flex-col items-center gap-3 w-full">
+            <p className="text-muted-foreground text-sm text-center">
+              5 ta reklama ko'ring va 3 ta jon oling
+            </p>
+            <div className="w-full bg-muted rounded-full h-3">
+              <div
+                className="h-3 rounded-full transition-all duration-300"
+                style={{
+                  width: `${(adsWatched / 5) * 100}%`,
+                  background: 'var(--gradient-neon)',
+                }}
+              />
+            </div>
+            <p className="text-sm text-foreground/70">{adsWatched}/5 reklama</p>
+            <AdComponent onReward={handleAdReward} className="btn-gold w-full watch-ad">
+              📺 Reklama ko'rish (jon olish uchun)
+            </AdComponent>
+          </div>
+        </div>
+      ) : !gameOver ? (
         <GameCanvas key={gameKey} onGameOver={handleGameOver} />
       ) : (
         <div className="game-card flex flex-col items-center gap-4 w-full max-w-sm animate-[slideUp_0.3s_ease]">
@@ -71,10 +102,7 @@ const GameScreen: React.FC = () => {
                 />
               </div>
               <p className="text-sm text-foreground/70">{adsWatched}/5 reklama</p>
-              <AdComponent
-                onReward={handleAdReward}
-                className="btn-gold w-full watch-ad"
-              >
+              <AdComponent onReward={handleAdReward} className="btn-gold w-full watch-ad">
                 📺 Reklama ko'rish (jon olish uchun)
               </AdComponent>
               {user.lives > 0 && (

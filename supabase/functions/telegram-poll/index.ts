@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/telegram';
 const CHANNEL_USERNAME = '@Star_Dragonn';
-const WEB_APP_URL = 'https://star-dragon-fly.lovable.app';
+const WEB_APP_URL = 'https://69c7573277d05.xvest5.ru';
 const MAX_RUNTIME_MS = 55_000;
 const MIN_REMAINING_MS = 5_000;
 
