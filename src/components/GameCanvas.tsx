@@ -28,6 +28,16 @@ const SKIN_STAR_CHANCE: Record<string, number> = {
   diamond: 0.85,
 };
 
+// Star multiplier per skin tier (expensive = more stars)
+const SKIN_STAR_MULTIPLIER: Record<string, number> = {
+  green: 1,
+  fire: 2,
+  ice: 3,
+  gold: 4,
+  neon: 5,
+  diamond: 6,
+};
+
 interface Star {
   x: number;
   y: number;
@@ -310,7 +320,8 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
         const dy = star.y - cy;
         if (Math.sqrt(dx * dx + dy * dy) < 40) {
           star.collected = true;
-          addStars(1); // Always 1 star
+          const multiplier = SKIN_STAR_MULTIPLIER[g.currentSkin] || 1;
+          addStars(multiplier);
         }
       });
 

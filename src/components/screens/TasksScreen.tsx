@@ -4,10 +4,6 @@ import { Check, Hash, Gift, ExternalLink, Loader2 } from 'lucide-react';
 import AdComponent from '@/components/AdComponent';
 import { toast } from 'sonner';
 
-const tasks = [
-  { id: 'ad_watch', label: 'Reklama ko\'rish', reward: 10, icon: '📺', repeatable: true },
-];
-
 const DAILY_BONUS = [
   { day: 1, reward: 10, type: 'stars' },
   { day: 2, reward: 20, type: 'stars' },
@@ -43,10 +39,10 @@ async function checkChannelSubscription(chatId: string, userTelegramId: number):
 }
 
 const TasksScreen: React.FC = () => {
-  const { user, completeTask, addStars, claimDailyBonus, dailyBonusDay, canClaimDailyBonus, adminTasks } = useGame();
+  const { user, completeTask, claimDailyBonus, dailyBonusDay, canClaimDailyBonus, adminTasks, watchAdForCoins, userAdCount, adDailyLimit } = useGame();
   const [verifying, setVerifying] = useState<string | null>(null);
   const [dailyAdsWatched, setDailyAdsWatched] = useState(0);
-  const [dailyAdTypes, setDailyAdTypes] = useState<{ monetag: boolean; onclicka: boolean }>({ monetag: false, onclicka: false });
+  const [adLoading, setAdLoading] = useState(false);
 
   const handleChannelTask = async (task: typeof adminTasks[0]) => {
     window.open(task.channelUrl, '_blank');
@@ -77,12 +73,6 @@ const TasksScreen: React.FC = () => {
   const handleDailyAdReward = () => {
     const newCount = dailyAdsWatched + 1;
     setDailyAdsWatched(newCount);
-    // Track which type was watched (alternating via AdComponent)
-    if (newCount === 1) {
-      setDailyAdTypes(prev => ({ ...prev, monetag: true }));
-    } else if (newCount === 2) {
-      setDailyAdTypes(prev => ({ ...prev, onclicka: true }));
-    }
   };
 
   const handleClaimDailyBonus = () => {
@@ -92,10 +82,21 @@ const TasksScreen: React.FC = () => {
     }
     claimDailyBonus();
     setDailyAdsWatched(0);
-    setDailyAdTypes({ monetag: false, onclicka: false });
+  };
+
+  const handleAdCoinReward = async () => {
+    setAdLoading(true);
+    const result = await watchAdForCoins();
+    setAdLoading(false);
+    if (result.success) {
+      toast.success(`+15 🪙 olindi! (${result.today_count}/${adDailyLimit})`);
+    } else {
+      toast.error('Kunlik limit tugagan!');
+    }
   };
 
   const dailyBonusReady = dailyAdsWatched >= 2 && canClaimDailyBonus;
+  const adLimitReached = userAdCount >= adDailyLimit;
 
   return (
     <div className="px-4 pt-2 pb-4">
@@ -163,47 +164,28 @@ const TasksScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Tasks */}
+      {/* Ad watch for coins */}
+      <div className="game-card mb-4 flex items-center gap-3">
+        <span className="text-2xl">📺</span>
+        <div className="flex-1">
+          <p className="font-bold text-sm text-foreground">Reklama ko'rish</p>
+          <p className="text-xs text-accent">+15 🪙 har bir reklama</p>
+          <p className="text-[10px] text-muted-foreground">{userAdCount}/{adDailyLimit} kunlik limit</p>
+        </div>
+        {adLimitReached ? (
+          <span className="text-xs text-muted-foreground font-bold px-3 py-1.5 bg-muted rounded-lg">Limit tugadi</span>
+        ) : (
+          <AdComponent
+            onReward={handleAdCoinReward}
+            className="btn-neon text-xs py-1.5 px-3 watch-ad"
+          >
+            Ko'rish
+          </AdComponent>
+        )}
+      </div>
+
+      {/* Admin-added channel tasks */}
       <div className="flex flex-col gap-3">
-        {tasks.map(task => {
-          if (task.id === 'ad_watch') {
-            return (
-              <div key={task.id} className="game-card flex items-center gap-3">
-                <span className="text-2xl">{task.icon}</span>
-                <div className="flex-1">
-                  <p className="font-bold text-sm text-foreground">{task.label}</p>
-                  <p className="text-xs text-accent">+{task.reward} ⭐</p>
-                </div>
-                <AdComponent
-                  onReward={() => addStars(task.reward)}
-                  className="btn-neon text-xs py-1.5 px-3 watch-ad"
-                >
-                  Ko'rish
-                </AdComponent>
-              </div>
-            );
-          }
-
-          const done = user.tasks_done.includes(task.id) && !task.repeatable;
-          return (
-            <div key={task.id} className="game-card flex items-center gap-3">
-              <span className="text-2xl">{task.icon}</span>
-              <div className="flex-1">
-                <p className="font-bold text-sm text-foreground">{task.label}</p>
-                <p className="text-xs text-accent">+{task.reward} ⭐</p>
-              </div>
-              {done ? (
-                <span className="text-primary"><Check size={20} /></span>
-              ) : (
-                <button onClick={() => completeTask(task.id, task.reward)} className="btn-neon text-xs py-1.5 px-3">
-                  Bajarish
-                </button>
-              )}
-            </div>
-          );
-        })}
-
-        {/* Admin-added channel tasks */}
         {adminTasks.map(task => {
           const done = user.tasks_done.includes(`admin_${task.id}`);
           const isVerifying = verifying === task.id;

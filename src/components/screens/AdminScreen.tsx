@@ -10,6 +10,7 @@ const AdminScreen: React.FC = () => {
     allUsers, adminGiveStars, adminGiveCoins, adminRemoveStars, adminRemoveCoins,
     withdrawRequests, updateWithdrawRequest,
     adminTasks, addAdminTask, removeAdminTask,
+    adStats,
   } = useGame();
   const [activeTab, setActiveTab] = useState<AdminTab>('stats');
   const [giveUserId, setGiveUserId] = useState('');
@@ -154,6 +155,20 @@ const AdminScreen: React.FC = () => {
               <div>
                 <p className="text-sm font-bold text-red-400">{rejectedCount}</p>
                 <p className="text-[9px] text-muted-foreground">Rad etilgan</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="game-card">
+            <h4 className="font-bold text-sm text-foreground mb-2">📺 Reklama statistikasi</h4>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="bg-muted/50 rounded-lg p-2 text-center">
+                <p className="font-display text-lg text-accent">{adStats.total_ads.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">Jami ko'rilgan</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-2 text-center">
+                <p className="font-display text-lg text-primary">{adStats.today_ads.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">Bugun ko'rilgan</p>
               </div>
             </div>
           </div>
