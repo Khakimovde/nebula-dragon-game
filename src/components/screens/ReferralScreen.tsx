@@ -65,16 +65,6 @@ const ReferralScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Official channel */}
-      <div className="game-card">
-        <p className="text-sm text-foreground font-bold mb-2">📢 Rasmiy kanal</p>
-        <button
-          onClick={() => window.open(channelLink, '_blank')}
-          className="btn-gold w-full text-sm"
-        >
-          @Star_Dragonn kanalga o'tish
-        </button>
-      </div>
     </div>
   );
 };
