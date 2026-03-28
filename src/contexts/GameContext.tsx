@@ -462,6 +462,38 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [canClaimDailyBonus, user.telegram_id, today]);
 
+  const loadUserAdCount = useCallback(async () => {
+    try {
+      const data = await gameApi('get_user_ad_count', { telegram_id: user.telegram_id });
+      setUserAdCount(data.today_count || 0);
+    } catch {}
+  }, [user.telegram_id]);
+
+  const watchAdForCoins = useCallback(async () => {
+    try {
+      const data = await gameApi('watch_ad', { telegram_id: user.telegram_id });
+      if (data.success) {
+        setUser(prev => ({ ...prev, coins: prev.coins + 15 }));
+        setUserAdCount(data.today_count);
+        return { success: true, today_count: data.today_count, coins_earned: 15 };
+      }
+      return { success: false, today_count: userAdCount, coins_earned: 0 };
+    } catch {
+      return { success: false, today_count: userAdCount, coins_earned: 0 };
+    }
+  }, [user.telegram_id, userAdCount]);
+
+  const loadAdStats = useCallback(async () => {
+    try {
+      const data = await gameApi('get_ad_stats');
+      setAdStats({ total_ads: data.total_ads || 0, today_ads: data.today_ads || 0 });
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin) loadAdStats();
+  }, [isAdmin, loadAdStats]);
+
   return (
     <GameContext.Provider value={{
       user, setUser, addStars, spendStars, convertStarsToCoins,
@@ -471,7 +503,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       isAdmin, allUsers, adminGiveStars, adminGiveCoins, adminRemoveStars, adminRemoveCoins,
       adminTasks, addAdminTask, removeAdminTask,
       dailyBonusDay, canClaimDailyBonus, claimDailyBonus,
-      loading, refreshUser,
+      loading, refreshUser, watchAdForCoins, userAdCount, adDailyLimit, adStats,
     }}>
       {children}
     </GameContext.Provider>
