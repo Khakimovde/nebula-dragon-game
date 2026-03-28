@@ -2,8 +2,6 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import starImg from '@/assets/star.png';
 import gameBg from '@/assets/game-bg.jpg';
-import cloudImg from '@/assets/cloud.png';
-import asteroidImg from '@/assets/asteroid.png';
 import skinGreen from '@/assets/skin-green.png';
 import skinFire from '@/assets/skin-fire.png';
 import skinIce from '@/assets/skin-ice.png';
@@ -20,7 +18,7 @@ const SKIN_IMAGES: Record<string, string> = {
   diamond: skinDiamond,
 };
 
-// Star spawn chance per skin tier (higher tier = more stars)
+// Star spawn chance per skin tier
 const SKIN_STAR_CHANCE: Record<string, number> = {
   green: 0.4,
   fire: 0.5,
@@ -30,51 +28,36 @@ const SKIN_STAR_CHANCE: Record<string, number> = {
   diamond: 0.85,
 };
 
-// Extra stars per cloud pair based on skin
-const SKIN_EXTRA_STARS: Record<string, number> = {
-  green: 0,
-  fire: 0,
-  ice: 0,
-  gold: 1,
-  neon: 1,
-  diamond: 2,
-};
-
 interface Star {
   x: number;
   y: number;
-  type: 'normal' | 'gold' | 'diamond';
   collected: boolean;
 }
 
-interface CloudObstacle {
+interface PipeObstacle {
   x: number;
   topY: number;
   bottomY: number;
   gap: number;
   passed: boolean;
-  topSize: number;
-  bottomSize: number;
+  width: number;
 }
 
-interface Asteroid {
-  x: number;
-  y: number;
-  speed: number;
-  size: number;
-  rotation: number;
-  rotSpeed: number;
-}
-
-// Rocks removed — only clouds and asteroids kill
-
-const GRAVITY = 0.25; // Slower fall
+const GRAVITY = 0.25;
 const LIFT = -6;
 const OBSTACLE_SPEED = 2.5;
 const STAR_SIZE = 30;
-const DRAGON_SIZE = 80; // Bigger dragon
-const CLOUD_WIDTH = 180; // Much bigger clouds
-const CLOUD_HEIGHT = 160; // Taller clouds to cover top/bottom
+const DRAGON_SIZE = 80;
+const PIPE_WIDTH = 60;
+
+// Space-themed pipe colors
+const PIPE_GRADIENT_COLORS = {
+  outer: '#2a1a4e',
+  inner: '#4a2d8a',
+  highlight: '#7c5cbf',
+  edge: '#6b3fa0',
+  cap: '#8b5cf6',
+};
 
 const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameOver }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -86,10 +69,8 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
   const gameRef = useRef({
     playerY: 200,
     velocity: 0,
-    clouds: [] as CloudObstacle[],
-    asteroids: [] as Asteroid[],
+    pipes: [] as PipeObstacle[],
     stars: [] as Star[],
-    
     frameCount: 0,
     score: 0,
     bgX: 0,
@@ -97,8 +78,6 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
     dragonImage: null as HTMLImageElement | null,
     starImage: null as HTMLImageElement | null,
     bgImage: null as HTMLImageElement | null,
-    cloudImage: null as HTMLImageElement | null,
-    asteroidImage: null as HTMLImageElement | null,
     currentSkin: 'green',
   });
 
@@ -116,24 +95,14 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
     const bg = new Image();
     bg.src = gameBg;
     bg.onload = () => { gameRef.current.bgImage = bg; };
-
-    const cloud = new Image();
-    cloud.src = cloudImg;
-    cloud.onload = () => { gameRef.current.cloudImage = cloud; };
-
-    const asteroid = new Image();
-    asteroid.src = asteroidImg;
-    asteroid.onload = () => { gameRef.current.asteroidImage = asteroid; };
   }, [user.current_skin]);
 
   const startGame = useCallback(() => {
     const g = gameRef.current;
     g.playerY = 200;
     g.velocity = 0;
-    g.clouds = [];
-    g.asteroids = [];
+    g.pipes = [];
     g.stars = [];
-    
     g.frameCount = 0;
     g.score = 0;
     g.isRunning = true;
@@ -152,6 +121,69 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
     }
   }, [showStart, startGame]);
 
+  // Draw a space-themed pipe
+  const drawPipe = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, isTop: boolean) => {
+    if (height <= 0) return;
+
+    // Main pipe body - space crystal gradient
+    const gradient = ctx.createLinearGradient(x, 0, x + width, 0);
+    gradient.addColorStop(0, PIPE_GRADIENT_COLORS.outer);
+    gradient.addColorStop(0.3, PIPE_GRADIENT_COLORS.inner);
+    gradient.addColorStop(0.5, PIPE_GRADIENT_COLORS.highlight);
+    gradient.addColorStop(0.7, PIPE_GRADIENT_COLORS.inner);
+    gradient.addColorStop(1, PIPE_GRADIENT_COLORS.outer);
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x, y, width, height);
+
+    // Pipe edge lines
+    ctx.strokeStyle = PIPE_GRADIENT_COLORS.edge;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, width, height);
+
+    // Glowing center line
+    ctx.strokeStyle = 'rgba(139, 92, 246, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + width / 2, y);
+    ctx.lineTo(x + width / 2, y + height);
+    ctx.stroke();
+
+    // Cap at the opening end
+    const capHeight = 12;
+    const capWidth = width + 16;
+    const capX = x - 8;
+    const capY = isTop ? y + height - capHeight : y;
+
+    const capGradient = ctx.createLinearGradient(capX, 0, capX + capWidth, 0);
+    capGradient.addColorStop(0, PIPE_GRADIENT_COLORS.edge);
+    capGradient.addColorStop(0.5, PIPE_GRADIENT_COLORS.cap);
+    capGradient.addColorStop(1, PIPE_GRADIENT_COLORS.edge);
+
+    ctx.fillStyle = capGradient;
+    ctx.beginPath();
+    ctx.roundRect(capX, capY, capWidth, capHeight, 4);
+    ctx.fill();
+
+    ctx.strokeStyle = PIPE_GRADIENT_COLORS.edge;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Small decorative dots (space debris effect)
+    ctx.fillStyle = 'rgba(167, 139, 250, 0.3)';
+    for (let i = 0; i < 3; i++) {
+      const dotY = y + (height / 4) * (i + 0.5);
+      if (dotY > y && dotY < y + height) {
+        ctx.beginPath();
+        ctx.arc(x + width * 0.25, dotY, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + width * 0.75, dotY, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  };
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -160,7 +192,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
 
     const W = canvas.width;
     const H = canvas.height;
-    const PLAYER_X = 80; // Dragon on the left side, facing left toward obstacles
+    const PLAYER_X = 80;
 
     let animId: number;
 
@@ -183,14 +215,13 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
         ctx.drawImage(g.bgImage, g.bgX + offsetX, offsetY, drawW, drawH);
         ctx.drawImage(g.bgImage, g.bgX + drawW + offsetX, offsetY, drawW, drawH);
       } else {
-        ctx.fillStyle = '#1a1030';
+        ctx.fillStyle = '#0a0a1a';
         ctx.fillRect(0, 0, W, H);
       }
 
       if (!g.isRunning) {
         if (g.dragonImage) {
           const floatY = Math.sin(Date.now() / 500) * 10;
-          // Dragon faces LEFT — flip horizontally
           ctx.save();
           ctx.translate(W / 2, H / 2 + floatY);
           ctx.drawImage(g.dragonImage, -40, -40, 80, 80);
@@ -200,118 +231,57 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
         return;
       }
 
-      // Physics — smoother fall
+      // Physics
       g.velocity += GRAVITY;
-      g.velocity = Math.min(g.velocity, 6); // Cap max fall speed
+      g.velocity = Math.min(g.velocity, 6);
       g.playerY += g.velocity;
       g.frameCount++;
 
-      // Spawn cloud pairs — big clouds covering top and bottom, gap in middle
+      // Spawn pipe obstacles
       if (g.frameCount % 120 === 0) {
         const minGap = 140;
         const maxGap = 180;
         const gap = minGap + Math.random() * (maxGap - minGap);
-        // Gap center position
         const gapCenter = 120 + Math.random() * (H - 240);
         const topY = gapCenter - gap / 2;
-        const cloudW = CLOUD_WIDTH + Math.random() * 40;
 
-        g.clouds.push({
+        g.pipes.push({
           x: W,
           topY,
           bottomY: gapCenter + gap / 2,
           gap,
           passed: false,
-          topSize: cloudW,
-          bottomSize: cloudW + Math.random() * 20 - 10,
+          width: PIPE_WIDTH,
         });
 
-        // Stars in gap based on skin tier
+        // Stars in gap - always 1 star max
         const skinName = g.currentSkin;
         const starChance = SKIN_STAR_CHANCE[skinName] || 0.4;
-        const extraStars = SKIN_EXTRA_STARS[skinName] || 0;
 
         if (Math.random() < starChance) {
-          const types: Star['type'][] = ['normal', 'normal', 'normal', 'gold', 'diamond'];
           g.stars.push({
-            x: W + cloudW / 2,
+            x: W + PIPE_WIDTH / 2,
             y: gapCenter,
-            type: types[Math.floor(Math.random() * types.length)],
             collected: false,
           });
         }
-
-        // Extra stars for higher tier skins
-        for (let i = 0; i < extraStars; i++) {
-          if (Math.random() < 0.5) {
-            g.stars.push({
-              x: W + cloudW / 2 + (i + 1) * 25,
-              y: gapCenter + (Math.random() - 0.5) * (gap * 0.5),
-              type: Math.random() > 0.7 ? 'gold' : 'normal',
-              collected: false,
-            });
-          }
-        }
-
       }
 
-      // Spawn asteroids (meteors)
-      if (g.frameCount % 70 === 0 && Math.random() > 0.4) {
-        const size = 30 + Math.random() * 25;
-        g.asteroids.push({
-          x: W + size,
-          y: 30 + Math.random() * (H - 60),
-          speed: 3 + Math.random() * 2,
-          size,
-          rotation: 0,
-          rotSpeed: (Math.random() - 0.5) * 0.1,
-        });
-      }
+      // Draw & update pipes
+      g.pipes.forEach(pipe => {
+        pipe.x -= OBSTACLE_SPEED;
 
-      // Draw & update clouds — BIG, covering top and bottom fully
-      g.clouds.forEach(cloud => {
-        cloud.x -= OBSTACLE_SPEED;
+        // Top pipe (from 0 to topY)
+        drawPipe(ctx, pipe.x, 0, pipe.width, pipe.topY, true);
 
-        if (g.cloudImage) {
-          // Top cloud — draw from very top down to topY
-          const topCloudH = cloud.topY;
-          // Draw multiple overlapping clouds to fill the top area
-          ctx.drawImage(g.cloudImage, cloud.x - 20, -10, cloud.topSize + 40, topCloudH + 20);
-
-          // Bottom cloud — draw from bottomY to very bottom
-          const bottomCloudH = H - cloud.bottomY;
-          ctx.drawImage(g.cloudImage, cloud.x - 20, cloud.bottomY - 10, cloud.bottomSize + 40, bottomCloudH + 20);
-        } else {
-          ctx.fillStyle = '#dde8f0';
-          ctx.fillRect(cloud.x, 0, cloud.topSize, cloud.topY);
-          ctx.fillRect(cloud.x, cloud.bottomY, cloud.bottomSize, H - cloud.bottomY);
-        }
+        // Bottom pipe (from bottomY to H)
+        drawPipe(ctx, pipe.x, pipe.bottomY, pipe.width, H - pipe.bottomY, false);
 
         // Score
-        if (!cloud.passed && cloud.x + Math.max(cloud.topSize, cloud.bottomSize) < PLAYER_X) {
-          cloud.passed = true;
+        if (!pipe.passed && pipe.x + pipe.width < PLAYER_X) {
+          pipe.passed = true;
           g.score++;
           setScore(g.score);
-        }
-      });
-
-
-      // Draw & update asteroids
-      g.asteroids.forEach(ast => {
-        ast.x -= ast.speed;
-        ast.rotation += ast.rotSpeed;
-
-        if (g.asteroidImage) {
-          ctx.save();
-          ctx.translate(ast.x, ast.y);
-          ctx.rotate(ast.rotation);
-          ctx.drawImage(g.asteroidImage, -ast.size / 2, -ast.size / 2, ast.size, ast.size);
-          ctx.restore();
-        } else {
-          ctx.fillStyle = '#8B4513';
-          ctx.beginPath();
-          ctx.arc(ast.x, ast.y, ast.size / 2, 0, Math.PI * 2);
-          ctx.fill();
         }
       });
 
@@ -322,17 +292,12 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
 
         if (g.starImage) {
           ctx.save();
-          if (star.type === 'gold') {
-            ctx.shadowColor = '#ffd700';
-            ctx.shadowBlur = 15;
-          } else if (star.type === 'diamond') {
-            ctx.shadowColor = '#00bfff';
-            ctx.shadowBlur = 20;
-          }
+          ctx.shadowColor = '#ffd700';
+          ctx.shadowBlur = 10;
           ctx.drawImage(g.starImage, star.x - STAR_SIZE / 2, star.y - STAR_SIZE / 2, STAR_SIZE, STAR_SIZE);
           ctx.restore();
         } else {
-          ctx.fillStyle = star.type === 'diamond' ? '#00bfff' : star.type === 'gold' ? '#ffd700' : '#ffaa00';
+          ctx.fillStyle = '#ffaa00';
           ctx.beginPath();
           ctx.arc(star.x, star.y, 12, 0, Math.PI * 2);
           ctx.fill();
@@ -345,12 +310,11 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
         const dy = star.y - cy;
         if (Math.sqrt(dx * dx + dy * dy) < 40) {
           star.collected = true;
-          const amounts = { normal: 1, gold: 3, diamond: 5 };
-          addStars(amounts[star.type]);
+          addStars(1); // Always 1 star
         }
       });
 
-      // Draw dragon — facing LEFT (flip horizontally)
+      // Draw dragon
       if (g.dragonImage) {
         ctx.save();
         const cx = PLAYER_X + DRAGON_SIZE / 2;
@@ -379,13 +343,13 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
         return;
       }
 
-      // Cloud collision — only actual visible cloud areas
-      for (const cloud of g.clouds) {
-        const margin = 15; // Forgiving collision margin
-        // Top cloud area (0 to topY)
+      // Pipe collision
+      for (const pipe of g.pipes) {
+        const margin = 10;
+        // Top pipe
         if (
-          pCx + pR > cloud.x + margin && pCx - pR < cloud.x + cloud.topSize - margin &&
-          pCy - pR < cloud.topY - margin
+          pCx + pR > pipe.x + margin && pCx - pR < pipe.x + pipe.width - margin &&
+          pCy - pR < pipe.topY - margin
         ) {
           g.isRunning = false;
           setIsPlaying(false);
@@ -393,26 +357,11 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
           animId = requestAnimationFrame(loop);
           return;
         }
-        // Bottom cloud area (bottomY to H)
+        // Bottom pipe
         if (
-          pCx + pR > cloud.x + margin && pCx - pR < cloud.x + cloud.bottomSize - margin &&
-          pCy + pR > cloud.bottomY + margin
+          pCx + pR > pipe.x + margin && pCx - pR < pipe.x + pipe.width - margin &&
+          pCy + pR > pipe.bottomY + margin
         ) {
-          g.isRunning = false;
-          setIsPlaying(false);
-          onGameOver(g.score);
-          animId = requestAnimationFrame(loop);
-          return;
-        }
-      }
-
-
-      // Asteroid collision
-      for (const ast of g.asteroids) {
-        const dx = ast.x - pCx;
-        const dy = ast.y - pCy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < pR + ast.size / 2 - 5) {
           g.isRunning = false;
           setIsPlaying(false);
           onGameOver(g.score);
@@ -422,10 +371,8 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
       }
 
       // Cleanup
-      g.clouds = g.clouds.filter(c => c.x > -250);
-      g.asteroids = g.asteroids.filter(a => a.x > -60);
+      g.pipes = g.pipes.filter(p => p.x > -100);
       g.stars = g.stars.filter(s => s.x > -50 && !s.collected);
-      
 
       animId = requestAnimationFrame(loop);
     };

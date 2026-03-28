@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 
 const tasks = [
   { id: 'ad_watch', label: 'Reklama ko\'rish', reward: 10, icon: '📺', repeatable: true },
-  { id: 'invite_friend', label: 'Do\'st taklif qilish', reward: 100, icon: '👥', repeatable: true },
 ];
 
 const DAILY_BONUS = [
@@ -46,6 +45,8 @@ async function checkChannelSubscription(chatId: string, userTelegramId: number):
 const TasksScreen: React.FC = () => {
   const { user, completeTask, addStars, claimDailyBonus, dailyBonusDay, canClaimDailyBonus, adminTasks } = useGame();
   const [verifying, setVerifying] = useState<string | null>(null);
+  const [dailyAdsWatched, setDailyAdsWatched] = useState(0);
+  const [dailyAdTypes, setDailyAdTypes] = useState<{ monetag: boolean; onclicka: boolean }>({ monetag: false, onclicka: false });
 
   const handleChannelTask = async (task: typeof adminTasks[0]) => {
     window.open(task.channelUrl, '_blank');
@@ -72,6 +73,29 @@ const TasksScreen: React.FC = () => {
       setVerifying(null);
     }
   };
+
+  const handleDailyAdReward = () => {
+    const newCount = dailyAdsWatched + 1;
+    setDailyAdsWatched(newCount);
+    // Track which type was watched (alternating via AdComponent)
+    if (newCount === 1) {
+      setDailyAdTypes(prev => ({ ...prev, monetag: true }));
+    } else if (newCount === 2) {
+      setDailyAdTypes(prev => ({ ...prev, onclicka: true }));
+    }
+  };
+
+  const handleClaimDailyBonus = () => {
+    if (dailyAdsWatched < 2) {
+      toast.error('Avval 2 ta reklama ko\'ring!');
+      return;
+    }
+    claimDailyBonus();
+    setDailyAdsWatched(0);
+    setDailyAdTypes({ monetag: false, onclicka: false });
+  };
+
+  const dailyBonusReady = dailyAdsWatched >= 2 && canClaimDailyBonus;
 
   return (
     <div className="px-4 pt-2 pb-4">
@@ -105,13 +129,38 @@ const TasksScreen: React.FC = () => {
             );
           })}
         </div>
-        <button
-          onClick={claimDailyBonus}
-          disabled={!canClaimDailyBonus}
-          className={canClaimDailyBonus ? 'btn-gold w-full text-sm py-2' : 'w-full py-2 rounded-xl bg-muted text-muted-foreground font-bold cursor-not-allowed text-sm'}
-        >
-          {canClaimDailyBonus ? '🎁 Bonus olish' : '✅ Bugun olingan'}
-        </button>
+        
+        {canClaimDailyBonus ? (
+          <div className="flex flex-col gap-2">
+            {dailyAdsWatched < 2 && (
+              <>
+                <p className="text-xs text-muted-foreground text-center">
+                  Bonus olish uchun 2 ta reklama ko'ring ({dailyAdsWatched}/2)
+                </p>
+                <AdComponent
+                  onReward={handleDailyAdReward}
+                  className="btn-neon w-full text-sm py-2 watch-ad"
+                >
+                  📺 Reklama ko'rish ({dailyAdsWatched}/2)
+                </AdComponent>
+              </>
+            )}
+            <button
+              onClick={handleClaimDailyBonus}
+              disabled={!dailyBonusReady}
+              className={dailyBonusReady ? 'btn-gold w-full text-sm py-2' : 'w-full py-2 rounded-xl bg-muted text-muted-foreground font-bold cursor-not-allowed text-sm'}
+            >
+              {dailyBonusReady ? '🎁 Bonus olish' : `📺 ${2 - dailyAdsWatched} ta reklama qoldi`}
+            </button>
+          </div>
+        ) : (
+          <button
+            disabled
+            className="w-full py-2 rounded-xl bg-muted text-muted-foreground font-bold cursor-not-allowed text-sm"
+          >
+            ✅ Bugun olingan
+          </button>
+        )}
       </div>
 
       {/* Tasks */}
@@ -129,7 +178,7 @@ const TasksScreen: React.FC = () => {
                   onReward={() => addStars(task.reward)}
                   className="btn-neon text-xs py-1.5 px-3 watch-ad"
                 >
-                  Bajarish
+                  Ko'rish
                 </AdComponent>
               </div>
             );
