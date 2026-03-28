@@ -68,6 +68,10 @@ interface GameState {
   claimDailyBonus: () => void;
   loading: boolean;
   refreshUser: () => Promise<void>;
+  watchAdForCoins: () => Promise<{ success: boolean; today_count: number; coins_earned: number }>;
+  userAdCount: number;
+  adDailyLimit: number;
+  adStats: { total_ads: number; today_ads: number };
 }
 
 const ADMIN_ID = 7411640202;
@@ -153,6 +157,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [lastClaimed, setLastClaimed] = useState<string | null>(null);
   const [adminTasks, setAdminTasks] = useState<AdminTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userAdCount, setUserAdCount] = useState(0);
+  const [adDailyLimit] = useState(500);
+  const [adStats, setAdStats] = useState({ total_ads: 0, today_ads: 0 });
 
   const today = getDateString();
   const canClaimDailyBonus = lastClaimed !== today;
@@ -160,6 +167,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     loadUser();
     loadAdminTasks();
+    loadUserAdCount();
   }, []);
 
   const loadUser = async () => {

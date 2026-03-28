@@ -307,6 +307,81 @@ Deno.serve(async (req) => {
         return ok({ success: true });
       }
 
+      // ===== WATCH AD (15 coins, 500/day limit, resets 00:00 UZT) =====
+      case 'watch_ad': {
+        const { telegram_id } = body;
+        const { data: user } = await supabase.from('users').select('id, coins').eq('telegram_id', telegram_id).single();
+        if (!user) return error('User not found', 404);
+
+        // Get today's date in UZB timezone (UTC+5)
+        const now = new Date();
+        const uzbOffset = 5 * 60 * 60 * 1000;
+        const uzbNow = new Date(now.getTime() + uzbOffset);
+        const todayUZB = uzbNow.toISOString().split('T')[0];
+        const todayStart = new Date(`${todayUZB}T00:00:00+05:00`).toISOString();
+        const tomorrowStart = new Date(new Date(`${todayUZB}T00:00:00+05:00`).getTime() + 86400000).toISOString();
+
+        // Count today's ads
+        const { count } = await supabase.from('ad_views')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('created_at', todayStart)
+          .lt('created_at', tomorrowStart);
+
+        const todayCount = count || 0;
+        if (todayCount >= 500) return error('Daily limit reached', 400);
+
+        // Record ad view
+        await supabase.from('ad_views').insert({ user_id: user.id });
+
+        // Give 15 coins
+        await supabase.from('users').update({ coins: user.coins + 15 }).eq('id', user.id);
+
+        return ok({ success: true, coins_earned: 15, today_count: todayCount + 1, daily_limit: 500 });
+      }
+
+      // ===== GET USER AD COUNT =====
+      case 'get_user_ad_count': {
+        const { telegram_id } = body;
+        const { data: user } = await supabase.from('users').select('id').eq('telegram_id', telegram_id).single();
+        if (!user) return error('User not found', 404);
+
+        const now = new Date();
+        const uzbOffset = 5 * 60 * 60 * 1000;
+        const uzbNow = new Date(now.getTime() + uzbOffset);
+        const todayUZB = uzbNow.toISOString().split('T')[0];
+        const todayStart = new Date(`${todayUZB}T00:00:00+05:00`).toISOString();
+        const tomorrowStart = new Date(new Date(`${todayUZB}T00:00:00+05:00`).getTime() + 86400000).toISOString();
+
+        const { count } = await supabase.from('ad_views')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('created_at', todayStart)
+          .lt('created_at', tomorrowStart);
+
+        return ok({ today_count: count || 0, daily_limit: 500 });
+      }
+
+      // ===== ADMIN: AD STATS =====
+      case 'get_ad_stats': {
+        const now = new Date();
+        const uzbOffset = 5 * 60 * 60 * 1000;
+        const uzbNow = new Date(now.getTime() + uzbOffset);
+        const todayUZB = uzbNow.toISOString().split('T')[0];
+        const todayStart = new Date(`${todayUZB}T00:00:00+05:00`).toISOString();
+        const tomorrowStart = new Date(new Date(`${todayUZB}T00:00:00+05:00`).getTime() + 86400000).toISOString();
+
+        const { count: totalAds } = await supabase.from('ad_views')
+          .select('*', { count: 'exact', head: true });
+
+        const { count: todayAds } = await supabase.from('ad_views')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', todayStart)
+          .lt('created_at', tomorrowStart);
+
+        return ok({ total_ads: totalAds || 0, today_ads: todayAds || 0 });
+      }
+
       default:
         return error('Unknown action', 400);
     }
