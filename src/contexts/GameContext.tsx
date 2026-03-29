@@ -167,7 +167,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     loadUser();
     loadAdminTasks();
-    loadUserAdCount();
   }, []);
 
   const loadUser = async () => {
@@ -210,6 +209,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
       // Load user's own withdrawal history
       loadUserWithdrawals(u.telegram_id);
+
+      // Load ad count for this user
+      try {
+        const adData = await gameApi('get_user_ad_count', { telegram_id: u.telegram_id });
+        setUserAdCount(adData.today_count || 0);
+      } catch {}
 
       // Load admin data if admin
       if (u.telegram_id === ADMIN_ID) {
