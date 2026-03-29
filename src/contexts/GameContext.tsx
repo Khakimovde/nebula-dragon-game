@@ -68,7 +68,7 @@ interface GameState {
   claimDailyBonus: () => void;
   loading: boolean;
   refreshUser: () => Promise<void>;
-  watchAdForCoins: () => Promise<{ success: boolean; today_count: number; coins_earned: number }>;
+  watchAdForStars: () => Promise<{ success: boolean; today_count: number; stars_earned: number }>;
   userAdCount: number;
   adDailyLimit: number;
   adStats: { total_ads: number; today_ads: number };
@@ -469,17 +469,17 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     } catch {}
   }, [user.telegram_id]);
 
-  const watchAdForCoins = useCallback(async () => {
+  const watchAdForStars = useCallback(async () => {
     try {
       const data = await gameApi('watch_ad', { telegram_id: user.telegram_id });
       if (data.success) {
-        setUser(prev => ({ ...prev, coins: prev.coins + 15 }));
+        setUser(prev => ({ ...prev, stars: prev.stars + 15 }));
         setUserAdCount(data.today_count);
-        return { success: true, today_count: data.today_count, coins_earned: 15 };
+        return { success: true, today_count: data.today_count, stars_earned: 15 };
       }
-      return { success: false, today_count: userAdCount, coins_earned: 0 };
+      return { success: false, today_count: userAdCount, stars_earned: 0 };
     } catch {
-      return { success: false, today_count: userAdCount, coins_earned: 0 };
+      return { success: false, today_count: userAdCount, stars_earned: 0 };
     }
   }, [user.telegram_id, userAdCount]);
 
@@ -503,7 +503,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       isAdmin, allUsers, adminGiveStars, adminGiveCoins, adminRemoveStars, adminRemoveCoins,
       adminTasks, addAdminTask, removeAdminTask,
       dailyBonusDay, canClaimDailyBonus, claimDailyBonus,
-      loading, refreshUser, watchAdForCoins, userAdCount, adDailyLimit, adStats,
+      loading, refreshUser, watchAdForStars, userAdCount, adDailyLimit, adStats,
     }}>
       {children}
     </GameContext.Provider>
