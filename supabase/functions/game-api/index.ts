@@ -131,9 +131,10 @@ Deno.serve(async (req) => {
 
       // ===== RESTORE LIVES =====
       case 'restore_lives': {
-        const { telegram_id } = body;
-        await supabase.from('users').update({ lives: 3 }).eq('telegram_id', telegram_id);
-        return ok({ lives: 3 });
+        const { telegram_id, lives } = body;
+        const livesCount = lives || 3;
+        await supabase.from('users').update({ lives: livesCount }).eq('telegram_id', telegram_id);
+        return ok({ lives: livesCount });
       }
 
       // ===== BUY SKIN =====

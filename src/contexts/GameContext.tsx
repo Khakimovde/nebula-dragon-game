@@ -333,10 +333,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     return alive;
   }, [user.telegram_id]);
 
+  const SKIN_LIVES: Record<string, number> = { green: 3, fire: 3, ice: 3, gold: 3, neon: 4, diamond: 5 };
+
   const restoreLives = useCallback(() => {
-    setUser(prev => ({ ...prev, lives: 3 }));
-    gameApi('restore_lives', { telegram_id: user.telegram_id }).catch(() => {});
-  }, [user.telegram_id]);
+    const lives = SKIN_LIVES[user.current_skin] || 3;
+    setUser(prev => ({ ...prev, lives }));
+    gameApi('restore_lives', { telegram_id: user.telegram_id, lives }).catch(() => {});
+  }, [user.telegram_id, user.current_skin]);
 
   const buySkin = useCallback(async (skinName: string, price: number): Promise<boolean> => {
     if (user.stars < price || user.skins.includes(skinName)) return false;
