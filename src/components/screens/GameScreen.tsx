@@ -8,11 +8,13 @@ const GameScreen: React.FC = () => {
   const { user, loseLife, restoreLives } = useGame();
   const [gameOver, setGameOver] = useState(false);
   const [lastScore, setLastScore] = useState(0);
+  const [lastStars, setLastStars] = useState(0);
   const [adsWatched, setAdsWatched] = useState(0);
   const [gameKey, setGameKey] = useState(0);
 
-  const handleGameOver = useCallback((score: number) => {
+  const handleGameOver = useCallback((score: number, starsCollected: number) => {
     setLastScore(score);
+    setLastStars(starsCollected);
     loseLife();
     setGameOver(true);
   }, [loseLife]);
@@ -71,6 +73,7 @@ const GameScreen: React.FC = () => {
         <div className="game-card flex flex-col items-center gap-4 w-full max-w-sm animate-[slideUp_0.3s_ease]">
           <h2 className="font-display text-2xl text-destructive">O'YIN TUGADI!</h2>
           <p className="text-foreground/80 font-body text-lg">Natija: <span className="text-accent font-bold">{lastScore}</span></p>
+          <p className="text-foreground/80 font-body text-lg">Yulduzlar: <span className="text-star-gold font-bold">⭐ {lastStars}</span></p>
 
           <div className="flex items-center gap-1 mb-2">
             {[...Array(3)].map((_, i) => (

@@ -69,10 +69,11 @@ const PIPE_GRADIENT_COLORS = {
   cap: '#8b5cf6',
 };
 
-const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameOver }) => {
+const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number) => void }> = ({ onGameOver }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { addStars, user } = useGame();
   const [score, setScore] = useState(0);
+  const [sessionStars, setSessionStars] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showStart, setShowStart] = useState(true);
 
@@ -117,6 +118,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
     g.score = 0;
     g.isRunning = true;
     setScore(0);
+    setSessionStars(0);
     setIsPlaying(true);
     setShowStart(false);
   }, []);
@@ -322,6 +324,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
           star.collected = true;
           const multiplier = SKIN_STAR_MULTIPLIER[g.currentSkin] || 1;
           addStars(multiplier);
+          setSessionStars(prev => prev + multiplier);
         }
       });
 
@@ -349,7 +352,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
       if (g.playerY < 0 || g.playerY + DRAGON_SIZE > H) {
         g.isRunning = false;
         setIsPlaying(false);
-        onGameOver(g.score);
+        onGameOver(g.score, sessionStars);
         animId = requestAnimationFrame(loop);
         return;
       }
@@ -364,7 +367,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
         ) {
           g.isRunning = false;
           setIsPlaying(false);
-          onGameOver(g.score);
+          onGameOver(g.score, sessionStars);
           animId = requestAnimationFrame(loop);
           return;
         }
@@ -375,7 +378,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
         ) {
           g.isRunning = false;
           setIsPlaying(false);
-          onGameOver(g.score);
+          onGameOver(g.score, sessionStars);
           animId = requestAnimationFrame(loop);
           return;
         }
@@ -390,7 +393,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
 
     animId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animId);
-  }, [addStars, onGameOver, isPlaying]);
+  }, [addStars, onGameOver, isPlaying, sessionStars]);
 
   return (
     <div className="relative w-full" style={{ aspectRatio: '9/16', maxHeight: '100%' }}>
@@ -410,8 +413,9 @@ const GameCanvas: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameO
         </div>
       )}
       {isPlaying && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center">
           <span className="text-4xl font-display text-foreground drop-shadow-lg">{score}</span>
+          <span className="text-sm font-body text-star-gold drop-shadow">⭐ {sessionStars}</span>
         </div>
       )}
     </div>
