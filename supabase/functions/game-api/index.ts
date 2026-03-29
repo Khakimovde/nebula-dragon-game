@@ -219,18 +219,21 @@ Deno.serve(async (req) => {
         return ok({ reward, reward_type: rewardType, day: currentDay, next_day: nextDay });
       }
 
-      // ===== CONVERT STARS TO COINS =====
+      // ===== CONVERT STARS TO COINS (atomic, prevents double-click) =====
       case 'convert_stars': {
         const { telegram_id } = body;
         const { data: user } = await supabase.from('users').select('id, stars, coins').eq('telegram_id', telegram_id).single();
         if (!user) return error('User not found', 404);
         if (user.stars < 150000) return error('Not enough stars', 400);
 
-        await supabase.from('users').update({
+        // Atomic update: only deduct if stars still sufficient
+        const { data: updated, error: updateErr } = await supabase.from('users').update({
           stars: user.stars - 150000,
           coins: user.coins + 10000,
-        }).eq('id', user.id);
-        return ok({ success: true });
+        }).eq('id', user.id).gte('stars', 150000).select('stars, coins').single();
+        
+        if (updateErr || !updated) return error('Not enough stars', 400);
+        return ok({ success: true, stars: updated.stars, coins: updated.coins });
       }
 
       // ===== WITHDRAW =====
@@ -307,10 +310,10 @@ Deno.serve(async (req) => {
         return ok({ success: true });
       }
 
-      // ===== WATCH AD (15 coins, 500/day limit, resets 00:00 UZT) =====
+      // ===== WATCH AD (15 stars, 500/day limit, resets 00:00 UZT) =====
       case 'watch_ad': {
         const { telegram_id } = body;
-        const { data: user } = await supabase.from('users').select('id, coins').eq('telegram_id', telegram_id).single();
+        const { data: user } = await supabase.from('users').select('id, stars').eq('telegram_id', telegram_id).single();
         if (!user) return error('User not found', 404);
 
         // Get today's date in UZB timezone (UTC+5)
@@ -334,10 +337,10 @@ Deno.serve(async (req) => {
         // Record ad view
         await supabase.from('ad_views').insert({ user_id: user.id });
 
-        // Give 15 coins
-        await supabase.from('users').update({ coins: user.coins + 15 }).eq('id', user.id);
+        // Give 15 stars
+        await supabase.from('users').update({ stars: user.stars + 15 }).eq('id', user.id);
 
-        return ok({ success: true, coins_earned: 15, today_count: todayCount + 1, daily_limit: 500 });
+        return ok({ success: true, stars_earned: 15, today_count: todayCount + 1, daily_limit: 500 });
       }
 
       // ===== GET USER AD COUNT =====
