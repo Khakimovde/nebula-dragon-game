@@ -9,12 +9,12 @@ import skinNeon from '@/assets/skin-neon.png';
 import skinDiamond from '@/assets/skin-diamond.png';
 
 const skins = [
-  { name: 'green', label: 'Yashil Dragon', price: 0, color: '#4ade80', image: skinGreen, starMultiplier: 1 },
-  { name: 'fire', label: 'Olov Dragon', price: 5000, color: '#ef4444', image: skinFire, starMultiplier: 2 },
-  { name: 'ice', label: 'Muz Dragon', price: 10000, color: '#38bdf8', image: skinIce, starMultiplier: 3 },
-  { name: 'gold', label: 'Oltin Dragon', price: 15000, color: '#f59e0b', image: skinGold, starMultiplier: 4 },
-  { name: 'neon', label: 'Neon Dragon', price: 20000, color: '#a855f7', image: skinNeon, starMultiplier: 5 },
-  { name: 'diamond', label: 'Olmosh Dragon', price: 30000, color: '#06b6d4', image: skinDiamond, starMultiplier: 6 },
+  { name: 'green', label: 'Yashil Dragon', price: 0, color: '#4ade80', image: skinGreen, starMultiplier: 1, bonusLives: 3 },
+  { name: 'fire', label: 'Olov Dragon', price: 5000, color: '#ef4444', image: skinFire, starMultiplier: 1, bonusLives: 3 },
+  { name: 'ice', label: 'Muz Dragon', price: 10000, color: '#38bdf8', image: skinIce, starMultiplier: 2, bonusLives: 3 },
+  { name: 'gold', label: 'Oltin Dragon', price: 15000, color: '#f59e0b', image: skinGold, starMultiplier: 3, bonusLives: 3 },
+  { name: 'neon', label: 'Neon Dragon', price: 20000, color: '#a855f7', image: skinNeon, starMultiplier: 4, bonusLives: 4 },
+  { name: 'diamond', label: 'Olmosh Dragon', price: 30000, color: '#06b6d4', image: skinDiamond, starMultiplier: 4, bonusLives: 5 },
 ];
 
 const ShopScreen: React.FC = () => {
@@ -43,6 +43,9 @@ const ShopScreen: React.FC = () => {
               </div>
               <span className="font-bold text-sm text-foreground">{skin.label}</span>
               <span className="text-[10px] text-accent font-bold">⭐ x{skin.starMultiplier} yulduz</span>
+              {skin.bonusLives > 3 && (
+                <span className="text-[10px] text-heart-red font-bold">❤️ {skin.bonusLives} ta jon</span>
+              )}
               {!owned ? (
                 <button
                   onClick={() => buySkin(skin.name, skin.price)}

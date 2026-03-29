@@ -39,7 +39,7 @@ async function checkChannelSubscription(chatId: string, userTelegramId: number):
 }
 
 const TasksScreen: React.FC = () => {
-  const { user, completeTask, claimDailyBonus, dailyBonusDay, canClaimDailyBonus, adminTasks, watchAdForCoins, userAdCount, adDailyLimit } = useGame();
+  const { user, completeTask, claimDailyBonus, dailyBonusDay, canClaimDailyBonus, adminTasks, watchAdForStars, userAdCount, adDailyLimit } = useGame();
   const [verifying, setVerifying] = useState<string | null>(null);
   const [dailyAdsWatched, setDailyAdsWatched] = useState(0);
   const [adLoading, setAdLoading] = useState(false);
@@ -84,12 +84,12 @@ const TasksScreen: React.FC = () => {
     setDailyAdsWatched(0);
   };
 
-  const handleAdCoinReward = async () => {
+  const handleAdStarReward = async () => {
     setAdLoading(true);
-    const result = await watchAdForCoins();
+    const result = await watchAdForStars();
     setAdLoading(false);
     if (result.success) {
-      toast.success(`+15 🪙 olindi! (${result.today_count}/${adDailyLimit})`);
+      toast.success(`+15 ⭐ olindi! (${result.today_count}/${adDailyLimit})`);
     } else {
       toast.error('Kunlik limit tugagan!');
     }
@@ -164,19 +164,19 @@ const TasksScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Ad watch for coins */}
+      {/* Ad watch for stars */}
       <div className="game-card mb-4 flex items-center gap-3">
         <span className="text-2xl">📺</span>
         <div className="flex-1">
           <p className="font-bold text-sm text-foreground">Reklama ko'rish</p>
-          <p className="text-xs text-accent">+15 🪙 har bir reklama</p>
+          <p className="text-xs text-accent">+15 ⭐ har bir reklama</p>
           <p className="text-[10px] text-muted-foreground">{userAdCount}/{adDailyLimit} kunlik limit</p>
         </div>
         {adLimitReached ? (
           <span className="text-xs text-muted-foreground font-bold px-3 py-1.5 bg-muted rounded-lg">Limit tugadi</span>
         ) : (
           <AdComponent
-            onReward={handleAdCoinReward}
+            onReward={handleAdStarReward}
             className="btn-neon text-xs py-1.5 px-3 watch-ad"
           >
             Ko'rish

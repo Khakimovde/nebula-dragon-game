@@ -68,7 +68,7 @@ interface GameState {
   claimDailyBonus: () => void;
   loading: boolean;
   refreshUser: () => Promise<void>;
-  watchAdForCoins: () => Promise<{ success: boolean; today_count: number; coins_earned: number }>;
+  watchAdForStars: () => Promise<{ success: boolean; today_count: number; stars_earned: number }>;
   userAdCount: number;
   adDailyLimit: number;
   adStats: { total_ads: number; today_ads: number };
@@ -303,16 +303,24 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     return success;
   }, [user.telegram_id]);
 
+  const [converting, setConverting] = useState(false);
+
   const convertStarsToCoins = useCallback(async (): Promise<boolean> => {
-    if (user.stars < 150000) return false;
+    if (user.stars < 150000 || converting) return false;
+    setConverting(true);
     try {
-      await gameApi('convert_stars', { telegram_id: user.telegram_id });
-      setUser(prev => ({ ...prev, stars: prev.stars - 150000, coins: prev.coins + 10000 }));
-      return true;
+      const data = await gameApi('convert_stars', { telegram_id: user.telegram_id });
+      if (data.success) {
+        setUser(prev => ({ ...prev, stars: data.stars, coins: data.coins }));
+        return true;
+      }
+      return false;
     } catch {
       return false;
+    } finally {
+      setConverting(false);
     }
-  }, [user.telegram_id, user.stars]);
+  }, [user.telegram_id, user.stars, converting]);
 
   const loseLife = useCallback((): boolean => {
     let alive = true;
@@ -325,10 +333,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     return alive;
   }, [user.telegram_id]);
 
+  const SKIN_LIVES: Record<string, number> = { green: 3, fire: 3, ice: 3, gold: 3, neon: 4, diamond: 5 };
+
   const restoreLives = useCallback(() => {
-    setUser(prev => ({ ...prev, lives: 3 }));
-    gameApi('restore_lives', { telegram_id: user.telegram_id }).catch(() => {});
-  }, [user.telegram_id]);
+    const lives = SKIN_LIVES[user.current_skin] || 3;
+    setUser(prev => ({ ...prev, lives }));
+    gameApi('restore_lives', { telegram_id: user.telegram_id, lives }).catch(() => {});
+  }, [user.telegram_id, user.current_skin]);
 
   const buySkin = useCallback(async (skinName: string, price: number): Promise<boolean> => {
     if (user.stars < price || user.skins.includes(skinName)) return false;
@@ -469,17 +480,17 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     } catch {}
   }, [user.telegram_id]);
 
-  const watchAdForCoins = useCallback(async () => {
+  const watchAdForStars = useCallback(async () => {
     try {
       const data = await gameApi('watch_ad', { telegram_id: user.telegram_id });
       if (data.success) {
-        setUser(prev => ({ ...prev, coins: prev.coins + 15 }));
+        setUser(prev => ({ ...prev, stars: prev.stars + 15 }));
         setUserAdCount(data.today_count);
-        return { success: true, today_count: data.today_count, coins_earned: 15 };
+        return { success: true, today_count: data.today_count, stars_earned: 15 };
       }
-      return { success: false, today_count: userAdCount, coins_earned: 0 };
+      return { success: false, today_count: userAdCount, stars_earned: 0 };
     } catch {
-      return { success: false, today_count: userAdCount, coins_earned: 0 };
+      return { success: false, today_count: userAdCount, stars_earned: 0 };
     }
   }, [user.telegram_id, userAdCount]);
 
@@ -503,7 +514,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       isAdmin, allUsers, adminGiveStars, adminGiveCoins, adminRemoveStars, adminRemoveCoins,
       adminTasks, addAdminTask, removeAdminTask,
       dailyBonusDay, canClaimDailyBonus, claimDailyBonus,
-      loading, refreshUser, watchAdForCoins, userAdCount, adDailyLimit, adStats,
+      loading, refreshUser, watchAdForStars, userAdCount, adDailyLimit, adStats,
     }}>
       {children}
     </GameContext.Provider>

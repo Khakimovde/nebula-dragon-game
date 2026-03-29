@@ -28,14 +28,14 @@ const SKIN_STAR_CHANCE: Record<string, number> = {
   diamond: 0.85,
 };
 
-// Star multiplier per skin tier (expensive = more stars)
+// Star multiplier per skin tier (max 4x)
 const SKIN_STAR_MULTIPLIER: Record<string, number> = {
   green: 1,
-  fire: 2,
-  ice: 3,
-  gold: 4,
-  neon: 5,
-  diamond: 6,
+  fire: 1,
+  ice: 2,
+  gold: 3,
+  neon: 4,
+  diamond: 4,
 };
 
 interface Star {
