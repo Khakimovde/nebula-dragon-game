@@ -303,16 +303,24 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     return success;
   }, [user.telegram_id]);
 
+  const [converting, setConverting] = useState(false);
+
   const convertStarsToCoins = useCallback(async (): Promise<boolean> => {
-    if (user.stars < 150000) return false;
+    if (user.stars < 150000 || converting) return false;
+    setConverting(true);
     try {
-      await gameApi('convert_stars', { telegram_id: user.telegram_id });
-      setUser(prev => ({ ...prev, stars: prev.stars - 150000, coins: prev.coins + 10000 }));
-      return true;
+      const data = await gameApi('convert_stars', { telegram_id: user.telegram_id });
+      if (data.success) {
+        setUser(prev => ({ ...prev, stars: data.stars, coins: data.coins }));
+        return true;
+      }
+      return false;
     } catch {
       return false;
+    } finally {
+      setConverting(false);
     }
-  }, [user.telegram_id, user.stars]);
+  }, [user.telegram_id, user.stars, converting]);
 
   const loseLife = useCallback((): boolean => {
     let alive = true;
