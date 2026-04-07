@@ -5,6 +5,52 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ---- UZT (UTC+5) TIME HELPERS ----
+const UZB_OFFSET = 5 * 60 * 60 * 1000;
+
+function getUZTNow() {
+  return new Date(Date.now() + UZB_OFFSET);
+}
+
+function getUZTDateStr() {
+  return getUZTNow().toISOString().split('T')[0];
+}
+
+function getUZTDayBounds() {
+  const today = getUZTDateStr();
+  const start = new Date(`${today}T00:00:00+05:00`).toISOString();
+  const end = new Date(new Date(`${today}T00:00:00+05:00`).getTime() + 86400000).toISOString();
+  return { start, end };
+}
+
+function getUZTWeekBounds() {
+  const uztNow = getUZTNow();
+  const day = uztNow.getUTCDay();
+  const daysFromMonday = day === 0 ? 6 : day - 1;
+  const monday = new Date(uztNow);
+  monday.setUTCDate(monday.getUTCDate() - daysFromMonday);
+  monday.setUTCHours(0, 1, 0, 0);
+  const start = new Date(monday.getTime() - UZB_OFFSET).toISOString();
+  const nextMonday = new Date(monday.getTime() + 7 * 86400000);
+  const end = new Date(nextMonday.getTime() - UZB_OFFSET).toISOString();
+  return { start, end, weekStartDate: monday.toISOString().split('T')[0] };
+}
+
+function getCurrentRoundTimeUTC(): Date {
+  const uztNow = getUZTNow();
+  const h = uztNow.getUTCHours();
+  const roundH = Math.floor(h / 2) * 2;
+  const rt = new Date(Date.UTC(
+    uztNow.getUTCFullYear(), uztNow.getUTCMonth(), uztNow.getUTCDate(),
+    roundH, 0, 0
+  ));
+  return new Date(rt.getTime() - UZB_OFFSET);
+}
+
+function getNextRoundTimeUTC(): Date {
+  return new Date(getCurrentRoundTimeUTC().getTime() + 2 * 3600000);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -25,7 +71,6 @@ Deno.serve(async (req) => {
         const { telegram_id, username, first_name, photo_url, referral_code_used } = body;
         if (!telegram_id) return error('telegram_id required', 400);
 
-        // Check existing
         let { data: user } = await supabase
           .from('users')
           .select('*')
@@ -49,10 +94,8 @@ Deno.serve(async (req) => {
           if (insertErr) return error(insertErr.message, 500);
           user = newUser;
 
-          // Add default skin
           await supabase.from('user_skins').insert({ user_id: user.id, skin_name: 'green' });
 
-          // Process referral
           if (referral_code_used && referral_code_used !== ref_code) {
             const { data: referrer } = await supabase
               .from('users')
@@ -74,7 +117,6 @@ Deno.serve(async (req) => {
             }
           }
         } else {
-          // Update profile info
           if (username || first_name || photo_url) {
             await supabase.from('users').update({
               ...(username && { username }),
@@ -84,11 +126,8 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Get skins
         const { data: skins } = await supabase.from('user_skins').select('skin_name').eq('user_id', user.id);
-        // Get tasks done
         const { data: tasks } = await supabase.from('user_tasks').select('task_id').eq('user_id', user.id);
-        // Get daily bonus
         const { data: bonus } = await supabase.from('daily_bonus').select('*').eq('user_id', user.id).single();
 
         return ok({
@@ -193,14 +232,12 @@ Deno.serve(async (req) => {
 
         if (bonus.last_claimed === today) return error('Already claimed today', 400);
 
-        // Check streak
         const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
         let currentDay = bonus.day;
         if (bonus.last_claimed && bonus.last_claimed !== yesterday) {
-          currentDay = 1; // streak broken
+          currentDay = 1;
         }
 
-        // Days 1-6: stars, Day 7: 50 coins
         const DAILY_STAR_REWARDS = [10, 20, 30, 40, 50, 60];
         let reward = 0;
         let rewardType = 'stars';
@@ -220,14 +257,13 @@ Deno.serve(async (req) => {
         return ok({ reward, reward_type: rewardType, day: currentDay, next_day: nextDay });
       }
 
-      // ===== CONVERT STARS TO COINS (atomic, prevents double-click) =====
+      // ===== CONVERT STARS TO COINS =====
       case 'convert_stars': {
         const { telegram_id } = body;
         const { data: user } = await supabase.from('users').select('id, stars, coins').eq('telegram_id', telegram_id).single();
         if (!user) return error('User not found', 404);
         if (user.stars < 150000) return error('Not enough stars', 400);
 
-        // Atomic update: only deduct if stars still sufficient
         const { data: updated, error: updateErr } = await supabase.from('users').update({
           stars: user.stars - 150000,
           coins: user.coins + 10000,
@@ -311,21 +347,14 @@ Deno.serve(async (req) => {
         return ok({ success: true });
       }
 
-      // ===== WATCH AD (15 stars, 500/day limit, resets 00:00 UZT) =====
+      // ===== WATCH AD =====
       case 'watch_ad': {
         const { telegram_id } = body;
         const { data: user } = await supabase.from('users').select('id, stars').eq('telegram_id', telegram_id).single();
         if (!user) return error('User not found', 404);
 
-        // Get today's date in UZB timezone (UTC+5)
-        const now = new Date();
-        const uzbOffset = 5 * 60 * 60 * 1000;
-        const uzbNow = new Date(now.getTime() + uzbOffset);
-        const todayUZB = uzbNow.toISOString().split('T')[0];
-        const todayStart = new Date(`${todayUZB}T00:00:00+05:00`).toISOString();
-        const tomorrowStart = new Date(new Date(`${todayUZB}T00:00:00+05:00`).getTime() + 86400000).toISOString();
+        const { start: todayStart, end: tomorrowStart } = getUZTDayBounds();
 
-        // Count today's ads
         const { count } = await supabase.from('ad_views')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id)
@@ -335,10 +364,7 @@ Deno.serve(async (req) => {
         const todayCount = count || 0;
         if (todayCount >= 500) return error('Daily limit reached', 400);
 
-        // Record ad view
         await supabase.from('ad_views').insert({ user_id: user.id });
-
-        // Give 15 stars
         await supabase.from('users').update({ stars: user.stars + 15 }).eq('id', user.id);
 
         return ok({ success: true, stars_earned: 15, today_count: todayCount + 1, daily_limit: 500 });
@@ -350,12 +376,7 @@ Deno.serve(async (req) => {
         const { data: user } = await supabase.from('users').select('id').eq('telegram_id', telegram_id).single();
         if (!user) return error('User not found', 404);
 
-        const now = new Date();
-        const uzbOffset = 5 * 60 * 60 * 1000;
-        const uzbNow = new Date(now.getTime() + uzbOffset);
-        const todayUZB = uzbNow.toISOString().split('T')[0];
-        const todayStart = new Date(`${todayUZB}T00:00:00+05:00`).toISOString();
-        const tomorrowStart = new Date(new Date(`${todayUZB}T00:00:00+05:00`).getTime() + 86400000).toISOString();
+        const { start: todayStart, end: tomorrowStart } = getUZTDayBounds();
 
         const { count } = await supabase.from('ad_views')
           .select('*', { count: 'exact', head: true })
@@ -368,12 +389,7 @@ Deno.serve(async (req) => {
 
       // ===== ADMIN: AD STATS =====
       case 'get_ad_stats': {
-        const now = new Date();
-        const uzbOffset = 5 * 60 * 60 * 1000;
-        const uzbNow = new Date(now.getTime() + uzbOffset);
-        const todayUZB = uzbNow.toISOString().split('T')[0];
-        const todayStart = new Date(`${todayUZB}T00:00:00+05:00`).toISOString();
-        const tomorrowStart = new Date(new Date(`${todayUZB}T00:00:00+05:00`).getTime() + 86400000).toISOString();
+        const { start: todayStart, end: tomorrowStart } = getUZTDayBounds();
 
         const { count: totalAds } = await supabase.from('ad_views')
           .select('*', { count: 'exact', head: true });
@@ -384,6 +400,340 @@ Deno.serve(async (req) => {
           .lt('created_at', tomorrowStart);
 
         return ok({ total_ads: totalAds || 0, today_ads: todayAds || 0 });
+      }
+
+      // ===== LEADERBOARD: GET TOP 20 =====
+      case 'get_leaderboard': {
+        const week = getUZTWeekBounds();
+
+        const { data: referrals } = await supabase
+          .from('referrals')
+          .select('referrer_id')
+          .gte('created_at', week.start)
+          .lt('created_at', week.end);
+
+        const counts: Record<string, number> = {};
+        (referrals || []).forEach((r: any) => {
+          counts[r.referrer_id] = (counts[r.referrer_id] || 0) + 1;
+        });
+
+        const sorted = Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 20);
+
+        const userIds = sorted.map(([id]) => id);
+        let usersMap: Record<string, any> = {};
+
+        if (userIds.length > 0) {
+          const { data: users } = await supabase
+            .from('users')
+            .select('id, telegram_id, username, first_name, photo_url')
+            .in('id', userIds);
+          usersMap = Object.fromEntries((users || []).map(u => [u.id, u]));
+        }
+
+        const REWARDS = Array.from({ length: 20 }, (_, i) => 1000 - i * 50);
+
+        const leaderboard = sorted.map(([userId, count], i) => ({
+          rank: i + 1,
+          user: usersMap[userId] || { id: userId },
+          referral_count: count,
+          reward_coins: REWARDS[i],
+        }));
+
+        // Get last week history
+        const uztNow = getUZTNow();
+        const day = uztNow.getUTCDay();
+        const daysFromMonday = day === 0 ? 6 : day - 1;
+        const prevMonday = new Date(uztNow);
+        prevMonday.setUTCDate(prevMonday.getUTCDate() - daysFromMonday - 7);
+        const prevWeekStart = prevMonday.toISOString().split('T')[0];
+
+        const { data: lastWeekRaw } = await supabase
+          .from('leaderboard_history')
+          .select('*')
+          .eq('week_start', prevWeekStart)
+          .order('rank');
+
+        let lastWeek: any[] = [];
+        if (lastWeekRaw && lastWeekRaw.length > 0) {
+          const lwUserIds = lastWeekRaw.map(h => h.user_id);
+          const { data: lwUsers } = await supabase
+            .from('users')
+            .select('id, username, first_name, photo_url')
+            .in('id', lwUserIds);
+          const lwMap = Object.fromEntries((lwUsers || []).map(u => [u.id, u]));
+          lastWeek = lastWeekRaw.map(h => ({
+            ...h,
+            user: lwMap[h.user_id] || {},
+          }));
+        }
+
+        // Find requesting user's rank
+        let myRank = null;
+        if (body.telegram_id) {
+          const { data: me } = await supabase.from('users').select('id').eq('telegram_id', body.telegram_id).single();
+          if (me) {
+            const allSorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            const myIdx = allSorted.findIndex(([id]) => id === me.id);
+            if (myIdx >= 0) myRank = myIdx + 1;
+          }
+        }
+
+        return ok({ leaderboard, last_week: lastWeek, my_rank: myRank, week_start: week.weekStartDate });
+      }
+
+      // ===== DAILY REFERRAL PROGRESS =====
+      case 'get_daily_referral_progress': {
+        const { telegram_id } = body;
+        const { data: user } = await supabase.from('users').select('id').eq('telegram_id', telegram_id).single();
+        if (!user) return error('User not found', 404);
+
+        const { start, end } = getUZTDayBounds();
+        const todayStr = getUZTDateStr();
+
+        const { count } = await supabase
+          .from('referrals')
+          .select('*', { count: 'exact', head: true })
+          .eq('referrer_id', user.id)
+          .gte('created_at', start)
+          .lt('created_at', end);
+
+        const { data: task } = await supabase
+          .from('daily_referral_tasks')
+          .select('reward_claimed')
+          .eq('user_id', user.id)
+          .eq('date', todayStr)
+          .single();
+
+        return ok({
+          referral_count: count || 0,
+          target: 15,
+          reward_claimed: task?.reward_claimed || false,
+        });
+      }
+
+      // ===== CLAIM DAILY REFERRAL REWARD =====
+      case 'claim_daily_referral_reward': {
+        const { telegram_id } = body;
+        const { data: user } = await supabase.from('users').select('id, coins').eq('telegram_id', telegram_id).single();
+        if (!user) return error('User not found', 404);
+
+        const { start, end } = getUZTDayBounds();
+        const todayStr = getUZTDateStr();
+
+        const { data: existing } = await supabase
+          .from('daily_referral_tasks')
+          .select('reward_claimed')
+          .eq('user_id', user.id)
+          .eq('date', todayStr)
+          .single();
+
+        if (existing?.reward_claimed) return error('Already claimed', 400);
+
+        const { count } = await supabase
+          .from('referrals')
+          .select('*', { count: 'exact', head: true })
+          .eq('referrer_id', user.id)
+          .gte('created_at', start)
+          .lt('created_at', end);
+
+        if ((count || 0) < 15) return error('Not enough referrals', 400);
+
+        await supabase.from('users').update({ coins: user.coins + 1000 }).eq('id', user.id);
+
+        await supabase.from('daily_referral_tasks').upsert({
+          user_id: user.id,
+          date: todayStr,
+          reward_claimed: true,
+        }, { onConflict: 'user_id,date' });
+
+        return ok({ success: true, coins_earned: 1000 });
+      }
+
+      // ===== WHEEL: GET STATUS =====
+      case 'get_wheel_status': {
+        const { telegram_id } = body;
+        const { data: user } = await supabase.from('users').select('id').eq('telegram_id', telegram_id).single();
+        if (!user) return error('User not found', 404);
+
+        const roundTime = getCurrentRoundTimeUTC().toISOString();
+        const nextRoundTime = getNextRoundTimeUTC().toISOString();
+
+        // Get or create current round
+        let { data: round } = await supabase
+          .from('wheel_rounds')
+          .select('*')
+          .eq('round_time', roundTime)
+          .single();
+
+        if (!round) {
+          const { data: newRound } = await supabase
+            .from('wheel_rounds')
+            .insert({ round_time: roundTime, status: 'active' })
+            .select()
+            .single();
+          round = newRound;
+        }
+
+        let tickets = 0;
+        let adsWatched = 0;
+        let participated = false;
+
+        if (round && round.status === 'active') {
+          const { data: progress } = await supabase
+            .from('wheel_ticket_progress')
+            .select('ads_watched, tickets_earned')
+            .eq('user_id', user.id)
+            .eq('round_id', round.id)
+            .single();
+
+          tickets = progress?.tickets_earned || 0;
+          adsWatched = progress?.ads_watched || 0;
+
+          const { data: participation } = await supabase
+            .from('wheel_participants')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('round_id', round.id)
+            .single();
+
+          participated = !!participation;
+        }
+
+        // Get last winner
+        const { data: lastRound } = await supabase
+          .from('wheel_rounds')
+          .select('*')
+          .eq('status', 'completed')
+          .not('winner_id', 'is', null)
+          .order('round_time', { ascending: false })
+          .limit(1)
+          .single();
+
+        return ok({
+          round: round ? {
+            id: round.id,
+            round_time: round.round_time,
+            participant_count: round.participant_count,
+            status: round.status,
+          } : null,
+          next_round_time: nextRoundTime,
+          tickets,
+          ads_watched: adsWatched,
+          participated,
+          last_winner: lastRound ? {
+            username: lastRound.winner_username,
+            photo_url: lastRound.winner_photo_url,
+            reward_stars: lastRound.reward_stars,
+            round_time: lastRound.round_time,
+          } : null,
+        });
+      }
+
+      // ===== WHEEL: WATCH AD FOR TICKET =====
+      case 'watch_wheel_ad': {
+        const { telegram_id } = body;
+        const { data: user } = await supabase.from('users').select('id').eq('telegram_id', telegram_id).single();
+        if (!user) return error('User not found', 404);
+
+        const roundTime = getCurrentRoundTimeUTC().toISOString();
+
+        let { data: round } = await supabase
+          .from('wheel_rounds')
+          .select('id, status')
+          .eq('round_time', roundTime)
+          .single();
+
+        if (!round) {
+          const { data: newRound } = await supabase
+            .from('wheel_rounds')
+            .insert({ round_time: roundTime, status: 'active' })
+            .select()
+            .single();
+          round = newRound;
+        }
+
+        if (!round || round.status !== 'active') return error('No active round', 400);
+
+        let { data: progress } = await supabase
+          .from('wheel_ticket_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('round_id', round.id)
+          .single();
+
+        if (!progress) {
+          const { data: newProgress } = await supabase
+            .from('wheel_ticket_progress')
+            .insert({ user_id: user.id, round_id: round.id })
+            .select()
+            .single();
+          progress = newProgress;
+        }
+
+        if (!progress) return error('Failed to create progress', 500);
+
+        let newAds = progress.ads_watched + 1;
+        let newTickets = progress.tickets_earned;
+
+        if (newAds >= 10) {
+          newAds = 0;
+          newTickets += 1;
+        }
+
+        await supabase.from('wheel_ticket_progress')
+          .update({ ads_watched: newAds, tickets_earned: newTickets })
+          .eq('id', progress.id);
+
+        return ok({ ads_watched: newAds, tickets_earned: newTickets });
+      }
+
+      // ===== WHEEL: JOIN ROUND =====
+      case 'join_wheel': {
+        const { telegram_id } = body;
+        const { data: user } = await supabase.from('users').select('id').eq('telegram_id', telegram_id).single();
+        if (!user) return error('User not found', 404);
+
+        const roundTime = getCurrentRoundTimeUTC().toISOString();
+
+        const { data: round } = await supabase
+          .from('wheel_rounds')
+          .select('id, participant_count, status')
+          .eq('round_time', roundTime)
+          .single();
+
+        if (!round || round.status !== 'active') return error('No active round', 400);
+
+        const { data: progress } = await supabase
+          .from('wheel_ticket_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('round_id', round.id)
+          .single();
+
+        if (!progress || progress.tickets_earned < 5) return error('Not enough tickets (need 5)', 400);
+
+        const { data: existing } = await supabase
+          .from('wheel_participants')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('round_id', round.id)
+          .single();
+
+        if (existing) return error('Already joined this round', 400);
+
+        await supabase.from('wheel_participants').insert({ user_id: user.id, round_id: round.id });
+
+        await supabase.from('wheel_ticket_progress')
+          .update({ tickets_earned: progress.tickets_earned - 5 })
+          .eq('id', progress.id);
+
+        await supabase.from('wheel_rounds')
+          .update({ participant_count: round.participant_count + 1 })
+          .eq('id', round.id);
+
+        return ok({ success: true });
       }
 
       default:

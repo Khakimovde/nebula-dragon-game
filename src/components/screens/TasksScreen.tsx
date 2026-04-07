@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from '@/contexts/GameContext';
-import { Check, Hash, Gift, ExternalLink, Loader2 } from 'lucide-react';
+import { Check, Hash, Gift, ExternalLink, Loader2, Users } from 'lucide-react';
 import AdComponent from '@/components/AdComponent';
 import { toast } from 'sonner';
 
@@ -13,6 +13,19 @@ const DAILY_BONUS = [
   { day: 6, reward: 60, type: 'stars' },
   { day: 7, reward: 50, type: 'coins' },
 ];
+
+const gameApiFn = async (action: string, body: any = {}) => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const res = await fetch(`${supabaseUrl}/functions/v1/game-api?action=${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}` },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data;
+};
 
 async function checkChannelSubscription(chatId: string, userTelegramId: number): Promise<boolean> {
   try {
@@ -43,6 +56,39 @@ const TasksScreen: React.FC = () => {
   const [verifying, setVerifying] = useState<string | null>(null);
   const [dailyAdsWatched, setDailyAdsWatched] = useState(0);
   const [adLoading, setAdLoading] = useState(false);
+
+  // Daily referral task state
+  const [dailyRefCount, setDailyRefCount] = useState(0);
+  const [dailyRefClaimed, setDailyRefClaimed] = useState(false);
+  const [dailyRefLoading, setDailyRefLoading] = useState(false);
+
+  const loadDailyReferralProgress = useCallback(async () => {
+    try {
+      const data = await gameApiFn('get_daily_referral_progress', { telegram_id: user.telegram_id });
+      setDailyRefCount(data.referral_count || 0);
+      setDailyRefClaimed(data.reward_claimed || false);
+    } catch {}
+  }, [user.telegram_id]);
+
+  useEffect(() => {
+    if (user.telegram_id) {
+      loadDailyReferralProgress();
+    }
+  }, [user.telegram_id, loadDailyReferralProgress]);
+
+  const handleClaimDailyReferral = async () => {
+    if (dailyRefLoading || dailyRefClaimed || dailyRefCount < 15) return;
+    setDailyRefLoading(true);
+    try {
+      await gameApiFn('claim_daily_referral_reward', { telegram_id: user.telegram_id });
+      setDailyRefClaimed(true);
+      toast.success('+1,000 🪙 olindi!');
+    } catch (e: any) {
+      toast.error(e.message || 'Xatolik');
+    } finally {
+      setDailyRefLoading(false);
+    }
+  };
 
   const handleChannelTask = async (task: typeof adminTasks[0]) => {
     window.open(task.channelUrl, '_blank');
@@ -160,6 +206,55 @@ const TasksScreen: React.FC = () => {
             className="w-full py-2 rounded-xl bg-muted text-muted-foreground font-bold cursor-not-allowed text-sm"
           >
             ✅ Bugun olingan
+          </button>
+        )}
+      </div>
+
+      {/* Daily Referral Task */}
+      <div className="game-card mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Users className="text-neon-blue" size={20} />
+          <span className="font-bold text-sm text-foreground">Kunlik referal vazifasi</span>
+          <span className="text-xs text-muted-foreground ml-auto">Har kuni yangilanadi</span>
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-muted-foreground">Bugun chaqirilgan:</span>
+          <span className={`font-bold text-sm ${dailyRefCount >= 15 ? 'text-primary' : 'text-foreground'}`}>
+            {dailyRefCount}/15
+          </span>
+        </div>
+        {/* Progress bar */}
+        <div className="w-full bg-muted rounded-full h-2 mb-3">
+          <div
+            className="h-full rounded-full bg-primary transition-all"
+            style={{ width: `${Math.min(100, (dailyRefCount / 15) * 100)}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-accent">Mukofot: 1,000 🪙</span>
+          <span className="text-[10px] text-muted-foreground">UZB 00:01 da yangilanadi</span>
+        </div>
+        {dailyRefClaimed ? (
+          <button
+            disabled
+            className="w-full py-2 rounded-xl bg-muted text-muted-foreground font-bold cursor-not-allowed text-sm"
+          >
+            ✅ Bugun olingan
+          </button>
+        ) : dailyRefCount >= 15 ? (
+          <button
+            onClick={handleClaimDailyReferral}
+            disabled={dailyRefLoading}
+            className="btn-gold w-full text-sm py-2"
+          >
+            {dailyRefLoading ? '⏳ Yuklanmoqda...' : '🎁 1,000 🪙 olish'}
+          </button>
+        ) : (
+          <button
+            disabled
+            className="w-full py-2 rounded-xl bg-muted text-muted-foreground font-bold cursor-not-allowed text-sm"
+          >
+            👥 {15 - dailyRefCount} ta referal qoldi
           </button>
         )}
       </div>

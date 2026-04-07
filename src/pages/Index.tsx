@@ -8,8 +8,10 @@ import TasksScreen from '@/components/screens/TasksScreen';
 import ReferralScreen from '@/components/screens/ReferralScreen';
 import ProfileScreen from '@/components/screens/ProfileScreen';
 import AdminScreen from '@/components/screens/AdminScreen';
+import RatingScreen from '@/components/screens/RatingScreen';
+import WheelScreen from '@/components/screens/WheelScreen';
 
-type Tab = 'game' | 'shop' | 'tasks' | 'referral' | 'profile';
+type Tab = 'game' | 'shop' | 'tasks' | 'wheel' | 'referral' | 'rating' | 'profile';
 
 const AppContent: React.FC = () => {
   const [tab, setTab] = useState<Tab>('game');
@@ -20,7 +22,9 @@ const AppContent: React.FC = () => {
       case 'game': return <GameScreen />;
       case 'shop': return <ShopScreen />;
       case 'tasks': return <TasksScreen />;
+      case 'wheel': return <WheelScreen />;
       case 'referral': return <ReferralScreen />;
+      case 'rating': return <RatingScreen />;
       case 'profile': return isAdmin ? (
         <div>
           <ProfileScreen />
