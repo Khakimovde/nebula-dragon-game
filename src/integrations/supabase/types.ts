@@ -105,6 +105,76 @@ export type Database = {
           },
         ]
       }
+      daily_referral_tasks: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          reward_claimed: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          reward_claimed?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          reward_claimed?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_referral_tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leaderboard_history: {
+        Row: {
+          created_at: string
+          id: string
+          rank: number
+          referral_count: number
+          reward_coins: number
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rank: number
+          referral_count: number
+          reward_coins: number
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rank?: number
+          referral_count?: number
+          reward_coins?: number
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leaderboard_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referrals: {
         Row: {
           created_at: string
@@ -291,6 +361,128 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      wheel_participants: {
+        Row: {
+          created_at: string
+          id: string
+          round_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          round_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          round_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wheel_participants_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "wheel_rounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wheel_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wheel_rounds: {
+        Row: {
+          created_at: string
+          id: string
+          participant_count: number
+          reward_stars: number
+          round_time: string
+          status: string
+          winner_id: string | null
+          winner_photo_url: string | null
+          winner_username: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          participant_count?: number
+          reward_stars?: number
+          round_time: string
+          status?: string
+          winner_id?: string | null
+          winner_photo_url?: string | null
+          winner_username?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          participant_count?: number
+          reward_stars?: number
+          round_time?: string
+          status?: string
+          winner_id?: string | null
+          winner_photo_url?: string | null
+          winner_username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wheel_rounds_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wheel_ticket_progress: {
+        Row: {
+          ads_watched: number
+          created_at: string
+          id: string
+          round_id: string
+          tickets_earned: number
+          user_id: string
+        }
+        Insert: {
+          ads_watched?: number
+          created_at?: string
+          id?: string
+          round_id: string
+          tickets_earned?: number
+          user_id: string
+        }
+        Update: {
+          ads_watched?: number
+          created_at?: string
+          id?: string
+          round_id?: string
+          tickets_earned?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wheel_ticket_progress_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "wheel_rounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wheel_ticket_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       withdraw_requests: {
         Row: {
