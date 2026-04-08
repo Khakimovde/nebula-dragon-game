@@ -677,7 +677,7 @@ Deno.serve(async (req) => {
         let newAds = progress.ads_watched + 1;
         let newTickets = progress.tickets_earned;
 
-        if (newAds >= 10) {
+        if (newAds >= 5) {
           newAds = 0;
           newTickets += 1;
         }
