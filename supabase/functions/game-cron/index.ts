@@ -38,10 +38,28 @@ Deno.serve(async () => {
           .single();
 
         if (winnerUser) {
-          // Give 5500 stars
+          // Give 3000 stars to winner
           await supabase.from('users')
-            .update({ stars: winnerUser.stars + 5500 })
+            .update({ stars: winnerUser.stars + 3000 })
             .eq('id', winnerUser.id);
+
+          // Give 50 stars to each loser
+          const loserIds = participants
+            .filter((p: any) => p.user_id !== winnerUser.id)
+            .map((p: any) => p.user_id);
+
+          for (const loserId of loserIds) {
+            const { data: loser } = await supabase
+              .from('users')
+              .select('id, stars')
+              .eq('id', loserId)
+              .single();
+            if (loser) {
+              await supabase.from('users')
+                .update({ stars: loser.stars + 50 })
+                .eq('id', loser.id);
+            }
+          }
 
           // Update round with winner info
           await supabase.from('wheel_rounds')
@@ -51,6 +69,7 @@ Deno.serve(async () => {
               winner_username: winnerUser.username || winnerUser.first_name || 'Player',
               winner_photo_url: winnerUser.photo_url,
               participant_count: participants.length,
+              reward_stars: 3000,
             })
             .eq('id', round.id);
         }

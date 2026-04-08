@@ -131,7 +131,7 @@ const WheelScreen: React.FC = () => {
             <Users size={14} /> {round?.participant_count || 0} ishtirokchi
           </span>
           <span className="flex items-center gap-1">
-            <Trophy size={14} className="text-accent" /> 5,500 ⭐
+            <Trophy size={14} className="text-accent" /> 3,000 ⭐ (g'olib) + 50 ⭐ (qatnashchi)
           </span>
         </div>
         {round?.round_time && (
@@ -146,7 +146,7 @@ const WheelScreen: React.FC = () => {
         <div className="flex items-center gap-2 mb-3">
           <Ticket size={20} className="text-accent" />
           <span className="font-bold text-sm text-foreground">Chiptalaring</span>
-          <span className="ml-auto font-display text-lg text-accent">{tickets}/5</span>
+          <span className="ml-auto font-display text-lg text-accent">{tickets} chipta</span>
         </div>
 
         <div className="flex gap-1 mb-3">
@@ -162,11 +162,11 @@ const WheelScreen: React.FC = () => {
           <>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-muted-foreground">Keyingi chipta uchun reklama:</span>
-              <span className="text-xs font-bold text-foreground">{adsWatched}/10</span>
+              <span className="text-xs font-bold text-foreground">{adsWatched}/5</span>
             </div>
 
             <div className="flex gap-0.5 mb-3">
-              {Array.from({ length: 10 }, (_, i) => (
+              {Array.from({ length: 5 }, (_, i) => (
                 <div
                   key={i}
                   className={`h-1.5 flex-1 rounded-full ${i < adsWatched ? 'bg-primary' : 'bg-muted'}`}
@@ -178,7 +178,7 @@ const WheelScreen: React.FC = () => {
               onReward={handleWatchAd}
               className="btn-neon w-full text-sm py-2 watch-ad"
             >
-              📺 Reklama ko'rish ({adsWatched}/10)
+              📺 Reklama ko'rish ({adsWatched}/5)
             </AdComponent>
           </>
         )}
@@ -217,10 +217,11 @@ const WheelScreen: React.FC = () => {
       <div className="game-card mb-4">
         <p className="text-xs font-bold text-foreground mb-2">Qanday ishlaydi?</p>
         <div className="flex flex-col gap-1.5 text-[11px] text-muted-foreground">
-          <p>🎫 10 ta reklama = 1 chipta</p>
+          <p>🎫 5 ta reklama = 1 chipta</p>
           <p>🎟️ 5 ta chipta = qatnashish huquqi</p>
           <p>🎡 Har 2 soatda 1 ta g'olib aniqlanadi</p>
-          <p>⭐ G'olib 5,500 yulduz oladi</p>
+          <p>⭐ G'olib 3,000 yulduz oladi</p>
+          <p>🌟 Qatnashganlar 50 yulduz oladi</p>
           <p>👤 Har bir raundda 1 marta qatnashish mumkin</p>
           <p>🕐 Raundlar: 00:00, 02:00, 04:00, ... 22:00 (UZB vaqti)</p>
         </div>
