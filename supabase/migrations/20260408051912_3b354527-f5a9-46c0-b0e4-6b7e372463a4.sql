@@ -1,0 +1,1 @@
+ALTER TABLE wheel_rounds ALTER COLUMN reward_stars SET DEFAULT 3000;
