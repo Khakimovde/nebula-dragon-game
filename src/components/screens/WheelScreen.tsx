@@ -47,31 +47,28 @@ const WheelScreen: React.FC = () => {
   }, [user.telegram_id]);
 
   useEffect(() => {
-    loadStatus();
-  }, [loadStatus]);
+    if (user.telegram_id) loadStatus();
+  }, [loadStatus, user.telegram_id]);
 
-  // Countdown timer
   useEffect(() => {
     if (!nextRoundTime) return;
     const interval = setInterval(() => {
       const diff = new Date(nextRoundTime).getTime() - Date.now();
       if (diff <= 0) {
         setTimeLeft('00:00:00');
-        // Reload status for new round
         loadStatus();
         return;
       }
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       const s = Math.floor((diff % 60000) / 1000);
-      setTimeLeft(
-        `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-      );
+      setTimeLeft(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
     }, 1000);
     return () => clearInterval(interval);
   }, [nextRoundTime, loadStatus]);
 
   const handleWatchAd = async () => {
+    if (adLoading) return;
     setAdLoading(true);
     try {
       const data = await gameApi('watch_wheel_ad', { telegram_id: user.telegram_id });
@@ -97,7 +94,7 @@ const WheelScreen: React.FC = () => {
       setParticipated(true);
       setTickets(prev => prev - 5);
       setRound((prev: any) => prev ? { ...prev, participant_count: prev.participant_count + 1 } : prev);
-      toast.success('🎡 Raundga qo\'shildingiz!');
+      toast.success("🎡 Raundga qo'shildingiz!");
     } catch (e: any) {
       toast.error(e.message || 'Xatolik');
     } finally {
@@ -137,6 +134,11 @@ const WheelScreen: React.FC = () => {
             <Trophy size={14} className="text-accent" /> 5,500 ⭐
           </span>
         </div>
+        {round?.round_time && (
+          <p className="text-[10px] text-muted-foreground mt-2">
+            Raund vaqti: {new Date(round.round_time).toLocaleString('uz-UZ', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+          </p>
+        )}
       </div>
 
       {/* Ticket Progress */}
@@ -147,36 +149,27 @@ const WheelScreen: React.FC = () => {
           <span className="ml-auto font-display text-lg text-accent">{tickets}/5</span>
         </div>
 
-        {/* Ticket progress bar */}
         <div className="flex gap-1 mb-3">
           {[0, 1, 2, 3, 4].map(i => (
             <div
               key={i}
-              className={`h-2 flex-1 rounded-full ${
-                i < tickets ? 'bg-accent' : 'bg-muted'
-              }`}
+              className={`h-2 flex-1 rounded-full ${i < tickets ? 'bg-accent' : 'bg-muted'}`}
             />
           ))}
         </div>
 
-        {/* Ads toward next ticket */}
         {isRoundActive && !participated && (
           <>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">
-                Keyingi chipta uchun reklama:
-              </span>
+              <span className="text-xs text-muted-foreground">Keyingi chipta uchun reklama:</span>
               <span className="text-xs font-bold text-foreground">{adsWatched}/10</span>
             </div>
 
-            {/* Ads progress bar */}
             <div className="flex gap-0.5 mb-3">
               {Array.from({ length: 10 }, (_, i) => (
                 <div
                   key={i}
-                  className={`h-1.5 flex-1 rounded-full ${
-                    i < adsWatched ? 'bg-primary' : 'bg-muted'
-                  }`}
+                  className={`h-1.5 flex-1 rounded-full ${i < adsWatched ? 'bg-primary' : 'bg-muted'}`}
                 />
               ))}
             </div>
@@ -229,6 +222,7 @@ const WheelScreen: React.FC = () => {
           <p>🎡 Har 2 soatda 1 ta g'olib aniqlanadi</p>
           <p>⭐ G'olib 5,500 yulduz oladi</p>
           <p>👤 Har bir raundda 1 marta qatnashish mumkin</p>
+          <p>🕐 Raundlar: 00:00, 02:00, 04:00, ... 22:00 (UZB vaqti)</p>
         </div>
       </div>
 
@@ -240,15 +234,15 @@ const WheelScreen: React.FC = () => {
             <span className="font-bold text-sm text-foreground">Oxirgi g'olib</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0 ring-2 ring-yellow-400">
+            <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0 ring-2 ring-yellow-400">
               {lastWinner.photo_url ? (
                 <img src={lastWinner.photo_url} alt="" className="w-full h-full object-cover" />
               ) : (
-                <User size={24} className="text-muted-foreground" />
+                <User size={28} className="text-muted-foreground" />
               )}
             </div>
             <div className="flex-1">
-              <p className="font-bold text-foreground">
+              <p className="font-bold text-foreground text-base">
                 {lastWinner.username || 'Player'}
               </p>
               <p className="text-sm text-accent font-bold">
