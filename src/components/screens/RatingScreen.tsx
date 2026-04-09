@@ -65,10 +65,10 @@ const RatingScreen: React.FC = () => {
   return (
     <div className="px-4 pt-2 pb-4">
       <h2 className="font-display text-xl text-foreground mb-1 flex items-center gap-2">
-        <Trophy className="text-accent" size={24} /> Haftalik reyting
+        <Trophy className="text-accent" size={24} /> Top reyting
       </h2>
       <p className="text-xs text-muted-foreground mb-4">
-        Har dushanba 00:01 da yangilanadi • Jami: <span className="text-accent font-bold">10,500 🪙</span>
+        Referal chaqirishlar bo'yicha • Top 20 ga tangalar beriladi
       </p>
 
       {/* Top 3 Podium */}

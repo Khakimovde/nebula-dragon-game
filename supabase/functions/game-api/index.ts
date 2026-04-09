@@ -404,83 +404,38 @@ Deno.serve(async (req) => {
 
       // ===== LEADERBOARD: GET TOP 20 =====
       case 'get_leaderboard': {
-        const week = getUZTWeekBounds();
-
-        const { data: referrals } = await supabase
-          .from('referrals')
-          .select('referrer_id')
-          .gte('created_at', week.start)
-          .lt('created_at', week.end);
-
-        const counts: Record<string, number> = {};
-        (referrals || []).forEach((r: any) => {
-          counts[r.referrer_id] = (counts[r.referrer_id] || 0) + 1;
-        });
-
-        const sorted = Object.entries(counts)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 20);
-
-        const userIds = sorted.map(([id]) => id);
-        let usersMap: Record<string, any> = {};
-
-        if (userIds.length > 0) {
-          const { data: users } = await supabase
-            .from('users')
-            .select('id, telegram_id, username, first_name, photo_url')
-            .in('id', userIds);
-          usersMap = Object.fromEntries((users || []).map(u => [u.id, u]));
-        }
+        // Use users.referrals column directly (tracks total referrals reliably)
+        const { data: topUsers } = await supabase
+          .from('users')
+          .select('id, telegram_id, username, first_name, photo_url, referrals')
+          .gt('referrals', 0)
+          .order('referrals', { ascending: false })
+          .limit(20);
 
         const REWARDS = Array.from({ length: 20 }, (_, i) => 1000 - i * 50);
 
-        const leaderboard = sorted.map(([userId, count], i) => ({
+        const leaderboard = (topUsers || []).map((u: any, i: number) => ({
           rank: i + 1,
-          user: usersMap[userId] || { id: userId },
-          referral_count: count,
+          user: { id: u.id, telegram_id: u.telegram_id, username: u.username, first_name: u.first_name, photo_url: u.photo_url },
+          referral_count: u.referrals,
           reward_coins: REWARDS[i],
         }));
-
-        // Get last week history
-        const uztNow = getUZTNow();
-        const day = uztNow.getUTCDay();
-        const daysFromMonday = day === 0 ? 6 : day - 1;
-        const prevMonday = new Date(uztNow);
-        prevMonday.setUTCDate(prevMonday.getUTCDate() - daysFromMonday - 7);
-        const prevWeekStart = prevMonday.toISOString().split('T')[0];
-
-        const { data: lastWeekRaw } = await supabase
-          .from('leaderboard_history')
-          .select('*')
-          .eq('week_start', prevWeekStart)
-          .order('rank');
-
-        let lastWeek: any[] = [];
-        if (lastWeekRaw && lastWeekRaw.length > 0) {
-          const lwUserIds = lastWeekRaw.map(h => h.user_id);
-          const { data: lwUsers } = await supabase
-            .from('users')
-            .select('id, username, first_name, photo_url')
-            .in('id', lwUserIds);
-          const lwMap = Object.fromEntries((lwUsers || []).map(u => [u.id, u]));
-          lastWeek = lastWeekRaw.map(h => ({
-            ...h,
-            user: lwMap[h.user_id] || {},
-          }));
-        }
 
         // Find requesting user's rank
         let myRank = null;
         if (body.telegram_id) {
-          const { data: me } = await supabase.from('users').select('id').eq('telegram_id', body.telegram_id).single();
-          if (me) {
-            const allSorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-            const myIdx = allSorted.findIndex(([id]) => id === me.id);
-            if (myIdx >= 0) myRank = myIdx + 1;
+          const { data: me } = await supabase.from('users').select('id, referrals').eq('telegram_id', body.telegram_id).single();
+          if (me && me.referrals > 0) {
+            // Count how many users have more referrals
+            const { count } = await supabase
+              .from('users')
+              .select('*', { count: 'exact', head: true })
+              .gt('referrals', me.referrals);
+            myRank = (count || 0) + 1;
           }
         }
 
-        return ok({ leaderboard, last_week: lastWeek, my_rank: myRank, week_start: week.weekStartDate });
+        return ok({ leaderboard, my_rank: myRank });
       }
 
       // ===== DAILY REFERRAL PROGRESS =====
@@ -516,7 +471,7 @@ Deno.serve(async (req) => {
       // ===== CLAIM DAILY REFERRAL REWARD =====
       case 'claim_daily_referral_reward': {
         const { telegram_id } = body;
-        const { data: user } = await supabase.from('users').select('id, coins').eq('telegram_id', telegram_id).single();
+        const { data: user } = await supabase.from('users').select('id, stars').eq('telegram_id', telegram_id).single();
         if (!user) return error('User not found', 404);
 
         const { start, end } = getUZTDayBounds();
@@ -540,7 +495,7 @@ Deno.serve(async (req) => {
 
         if ((count || 0) < 15) return error('Not enough referrals', 400);
 
-        await supabase.from('users').update({ coins: user.coins + 1000 }).eq('id', user.id);
+        await supabase.from('users').update({ stars: user.stars + 8000 }).eq('id', user.id);
 
         await supabase.from('daily_referral_tasks').upsert({
           user_id: user.id,
