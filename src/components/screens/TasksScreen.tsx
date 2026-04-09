@@ -82,7 +82,7 @@ const TasksScreen: React.FC = () => {
     try {
       await gameApiFn('claim_daily_referral_reward', { telegram_id: user.telegram_id });
       setDailyRefClaimed(true);
-      toast.success('+1,000 🪙 olindi!');
+      toast.success('+8,000 ⭐ olindi!');
     } catch (e: any) {
       toast.error(e.message || 'Xatolik');
     } finally {
@@ -231,7 +231,7 @@ const TasksScreen: React.FC = () => {
           />
         </div>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-accent">Mukofot: 1,000 🪙</span>
+          <span className="text-xs text-accent">Mukofot: 8,000 ⭐</span>
           <span className="text-[10px] text-muted-foreground">UZB 00:01 da yangilanadi</span>
         </div>
         {dailyRefClaimed ? (
@@ -247,7 +247,7 @@ const TasksScreen: React.FC = () => {
             disabled={dailyRefLoading}
             className="btn-gold w-full text-sm py-2"
           >
-            {dailyRefLoading ? '⏳ Yuklanmoqda...' : '🎁 1,000 🪙 olish'}
+            {dailyRefLoading ? '⏳ Yuklanmoqda...' : '🎁 8,000 ⭐ olish'}
           </button>
         ) : (
           <button
