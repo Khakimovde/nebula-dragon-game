@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
 
     if (!referrer || referrer.telegram_id === newUserId) return;
 
-    // Check if user already exists
+    // Check if this telegram user already exists
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
@@ -187,12 +187,35 @@ Deno.serve(async (req) => {
       .single();
 
     if (existingUser) {
+      // Check if this user was ALREADY referred by anyone (prevent duplicate)
       const { data: existingRef } = await supabase
         .from('referrals')
         .select('id')
         .eq('referred_id', existingUser.id)
         .single();
-      if (existingRef) return;
+      if (existingRef) return; // Already referred, skip
+
+      // Also check if referrer already referred this user
+      const { data: existingPair } = await supabase
+        .from('referrals')
+        .select('id')
+        .eq('referrer_id', referrer.id)
+        .eq('referred_id', existingUser.id)
+        .single();
+      if (existingPair) return;
+
+      // Record the referral in referrals table
+      const { error: refErr } = await supabase.from('referrals').insert({
+        referrer_id: referrer.id,
+        referred_id: existingUser.id,
+      });
+      if (refErr) return; // Insert failed (unique constraint), skip
+    } else {
+      // New user - will be created later by get_or_create_user
+      // We create a temporary record; get_or_create_user will also handle it
+      // For now just track that this new telegram_id should be referred
+      // We'll skip giving reward here - let get_or_create_user handle it
+      return;
     }
 
     // Give referrer bonus
