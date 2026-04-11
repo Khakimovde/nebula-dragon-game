@@ -347,6 +347,58 @@ Deno.serve(async (req) => {
         return ok({ success: true });
       }
 
+      // ===== ADMIN: SEARCH USER BY TELEGRAM ID =====
+      case 'search_user': {
+        const { telegram_id } = body;
+        if (!telegram_id) return error('telegram_id required', 400);
+        const { data: user } = await supabase.from('users').select('*').eq('telegram_id', telegram_id).single();
+        if (!user) return error('User not found', 404);
+
+        // Get referrals this user made
+        const { data: refs } = await supabase
+          .from('referrals')
+          .select('id, referred_id, created_at, reward_given')
+          .eq('referrer_id', user.id)
+          .order('created_at', { ascending: false });
+
+        // Get referred users' info
+        const referralDetails = [];
+        for (const ref of (refs || [])) {
+          const { data: refUser } = await supabase
+            .from('users')
+            .select('telegram_id, username, first_name, created_at')
+            .eq('id', ref.referred_id)
+            .single();
+          referralDetails.push({
+            ...ref,
+            referred_user: refUser || null,
+          });
+        }
+
+        // Get daily referral tasks
+        const { data: dailyTasks } = await supabase
+          .from('daily_referral_tasks')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('date', { ascending: false })
+          .limit(10);
+
+        // Get withdraw requests
+        const { data: withdraws } = await supabase
+          .from('withdraw_requests')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        return ok({
+          user,
+          referrals: referralDetails,
+          referral_count: (refs || []).length,
+          daily_tasks: dailyTasks || [],
+          withdrawals: withdraws || [],
+        });
+      }
+
       // ===== WATCH AD =====
       case 'watch_ad': {
         const { telegram_id } = body;
