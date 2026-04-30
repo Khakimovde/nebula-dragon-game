@@ -252,6 +252,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
         const gapCenter = 120 + Math.random() * (H - 240);
         const topY = gapCenter - gap / 2;
 
+        g.pipeIndex++;
         g.pipes.push({
           x: W,
           topY,
@@ -261,11 +262,9 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
           width: PIPE_WIDTH,
         });
 
-        // Stars in gap - always 1 star max
-        const skinName = g.currentSkin;
-        const starChance = SKIN_STAR_CHANCE[skinName] || 0.4;
-
-        if (Math.random() < starChance) {
+        // Yulduzlar: har N ustunda 1 marta 1 ta yulduz (multiplier yo'q)
+        const interval = SKIN_STAR_INTERVAL[g.currentSkin] || 6;
+        if (g.pipeIndex % interval === 0) {
           g.stars.push({
             x: W + PIPE_WIDTH / 2,
             y: gapCenter,
@@ -289,6 +288,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
           pipe.passed = true;
           g.score++;
           setScore(g.score);
+          playSound('score');
         }
       });
 
