@@ -347,6 +347,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
       if (g.playerY < 0 || g.playerY + DRAGON_SIZE > H) {
         g.isRunning = false;
         setIsPlaying(false);
+        playSound('die');
         onGameOver(g.score, sessionStars);
         animId = requestAnimationFrame(loop);
         return;
@@ -362,6 +363,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
         ) {
           g.isRunning = false;
           setIsPlaying(false);
+          playSound('die');
           onGameOver(g.score, sessionStars);
           animId = requestAnimationFrame(loop);
           return;
@@ -373,6 +375,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
         ) {
           g.isRunning = false;
           setIsPlaying(false);
+          playSound('die');
           onGameOver(g.score, sessionStars);
           animId = requestAnimationFrame(loop);
           return;
