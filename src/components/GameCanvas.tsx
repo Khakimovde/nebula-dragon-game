@@ -19,24 +19,15 @@ const SKIN_IMAGES: Record<string, string> = {
   diamond: skinDiamond,
 };
 
-// Star spawn chance per skin tier
-const SKIN_STAR_CHANCE: Record<string, number> = {
-  green: 0.4,
-  fire: 0.5,
-  ice: 0.55,
-  gold: 0.65,
-  neon: 0.75,
-  diamond: 0.85,
-};
-
-// Star multiplier per skin tier (max 4x)
-const SKIN_STAR_MULTIPLIER: Record<string, number> = {
-  green: 1,
-  fire: 1,
-  ice: 2,
-  gold: 3,
-  neon: 4,
-  diamond: 4,
+// Yulduz har N ta ustunda 1 marta chiqadi (kichik = tez-tez):
+// Green=6, Fire=5, Ice=5, Gold=4, Neon=3, Diamond=2
+const SKIN_STAR_INTERVAL: Record<string, number> = {
+  green: 6,
+  fire: 5,
+  ice: 5,
+  gold: 4,
+  neon: 3,
+  diamond: 2,
 };
 
 interface Star {
