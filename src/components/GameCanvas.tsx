@@ -76,6 +76,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
     stars: [] as Star[],
     frameCount: 0,
     score: 0,
+    pipeIndex: 0,
     bgX: 0,
     isRunning: false,
     dragonImage: null as HTMLImageElement | null,
