@@ -266,20 +266,20 @@ const TasksScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Ad watch for stars */}
+      {/* Ad watch for stars - PNG bilan */}
       <div className="game-card mb-4 flex items-center gap-3">
-        <span className="text-2xl">📺</span>
+        <img src={adIcon} alt="" className="w-14 h-14 bounce-anim" />
         <div className="flex-1">
-          <p className="font-bold text-sm text-foreground">Reklama ko'rish</p>
-          <p className="text-xs text-accent">+15 ⭐ har bir reklama</p>
-          <p className="text-[10px] text-muted-foreground">{userAdCount}/{adDailyLimit} kunlik limit</p>
+          <p className="font-bold text-base text-foreground">📺 Reklama ko'rish</p>
+          <p className="text-sm text-accent font-bold">+15 ⭐ har bir reklama</p>
+          <p className="text-[11px] text-muted-foreground">{userAdCount}/{adDailyLimit} kunlik limit</p>
         </div>
         {adLimitReached ? (
-          <span className="text-xs text-muted-foreground font-bold px-3 py-1.5 bg-muted rounded-lg">Limit tugadi</span>
+          <span className="text-xs text-muted-foreground font-bold px-3 py-1.5 bg-muted rounded-lg">Limit</span>
         ) : (
           <AdComponent
             onReward={handleAdStarReward}
-            className="btn-neon text-xs py-1.5 px-3 watch-ad"
+            className="btn-neon text-sm py-2 px-4 watch-ad"
           >
             Ko'rish
           </AdComponent>
