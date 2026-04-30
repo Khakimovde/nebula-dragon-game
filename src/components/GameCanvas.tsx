@@ -109,6 +109,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
     g.stars = [];
     g.frameCount = 0;
     g.score = 0;
+    g.pipeIndex = 0;
     g.isRunning = true;
     setScore(0);
     setSessionStars(0);
@@ -123,6 +124,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
     }
     if (gameRef.current.isRunning) {
       gameRef.current.velocity = LIFT;
+      playSound('flap');
     }
   }, [showStart, startGame]);
 
