@@ -215,12 +215,14 @@ const TasksScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Daily Referral Task */}
+      {/* Daily Referral Task - PNG bilan */}
       <div className="game-card mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="text-neon-blue" size={20} />
-          <span className="font-bold text-sm text-foreground">Kunlik referal vazifasi</span>
-          <span className="text-xs text-muted-foreground ml-auto">Har kuni yangilanadi</span>
+        <div className="flex items-center gap-3 mb-3">
+          <img src={referralIcon} alt="" className="w-12 h-12 float-anim" />
+          <div className="flex-1">
+            <h3 className="font-bold text-base text-foreground">👥 Kunlik referal vazifasi</h3>
+            <span className="text-[11px] text-muted-foreground">Har kuni 00:01 da yangilanadi</span>
+          </div>
         </div>
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-muted-foreground">Bugun chaqirilgan:</span>
