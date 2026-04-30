@@ -104,15 +104,22 @@ Deno.serve(async (req) => {
               .single();
 
             if (referrer) {
-              const { error: refErr } = await supabase.from('referrals').insert({
-                referrer_id: referrer.id,
-                referred_id: user.id,
-              });
-              if (!refErr) {
-                await supabase.from('users').update({
-                  stars: (await supabase.from('users').select('stars').eq('id', referrer.id).single()).data!.stars + 100,
-                  referrals: (await supabase.from('users').select('referrals').eq('id', referrer.id).single()).data!.referrals + 1,
-                }).eq('id', referrer.id);
+              // MAJBURIY: obuna tekshirish - faqat @Star_Dragonn kanaliga obuna bo'lsa referal hisoblanadi
+              const isSubscribed = await checkTelegramSubscription(telegram_id);
+              if (isSubscribed) {
+                const { error: refErr } = await supabase.from('referrals').insert({
+                  referrer_id: referrer.id,
+                  referred_id: user.id,
+                });
+                if (!refErr) {
+                  const { data: refData } = await supabase.from('users').select('stars, referrals').eq('id', referrer.id).single();
+                  if (refData) {
+                    await supabase.from('users').update({
+                      stars: refData.stars + 100,
+                      referrals: refData.referrals + 1,
+                    }).eq('id', referrer.id);
+                  }
+                }
               }
             }
           }
