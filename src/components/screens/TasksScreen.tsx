@@ -153,12 +153,14 @@ const TasksScreen: React.FC = () => {
         <Hash className="text-accent" size={24} /> Vazifalar
       </h2>
 
-      {/* Daily Bonus */}
-      <div className="game-card mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Gift className="text-accent" size={20} />
-          <span className="font-bold text-sm text-foreground">Kunlik bonus</span>
-          <span className="text-xs text-muted-foreground ml-auto">Kun {dailyBonusDay}/7</span>
+      {/* Daily Bonus - kattaroq */}
+      <div className="game-card mb-4 relative overflow-hidden">
+        <div className="flex items-center gap-3 mb-3">
+          <img src={giftIcon} alt="" className="w-14 h-14 bounce-anim" />
+          <div className="flex-1">
+            <h3 className="font-bold text-lg text-foreground">🎁 Kunlik bonus</h3>
+            <span className="text-xs text-muted-foreground">Kun {dailyBonusDay}/7</span>
+          </div>
         </div>
         <div className="grid grid-cols-7 gap-1 mb-3">
           {DAILY_BONUS.map((bonus, i) => {
