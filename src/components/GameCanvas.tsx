@@ -317,9 +317,9 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
         const dy = star.y - cy;
         if (Math.sqrt(dx * dx + dy * dy) < 40) {
           star.collected = true;
-          const multiplier = SKIN_STAR_MULTIPLIER[g.currentSkin] || 1;
-          addStars(multiplier);
-          setSessionStars(prev => prev + multiplier);
+          addStars(1);
+          setSessionStars(prev => prev + 1);
+          playSound('star');
         }
       });
 
