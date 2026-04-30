@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useGame } from '@/contexts/GameContext';
+import { playSound } from '@/lib/sounds';
 import starImg from '@/assets/star.png';
-import gameBg from '@/assets/game-bg.jpg';
+import gameBg from '@/assets/sky-bg.jpg';
 import skinGreen from '@/assets/skin-green.png';
 import skinFire from '@/assets/skin-fire.png';
 import skinIce from '@/assets/skin-ice.png';
