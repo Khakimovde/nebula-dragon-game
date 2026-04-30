@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from '@/contexts/GameContext';
-import { Check, Hash, Gift, ExternalLink, Loader2, Users } from 'lucide-react';
+import { Check, Hash, ExternalLink, Loader2 } from 'lucide-react';
 import AdComponent from '@/components/AdComponent';
 import { toast } from 'sonner';
+import giftIcon from '@/assets/icon-gift.png';
+import adIcon from '@/assets/icon-ad.png';
+import referralIcon from '@/assets/icon-referral.png';
 
 const DAILY_BONUS = [
   { day: 1, reward: 10, type: 'stars' },
