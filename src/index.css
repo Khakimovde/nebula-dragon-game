@@ -2,70 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
-
 @layer base {
   :root {
-    --background: 240 20% 8%;
-    --foreground: 45 100% 96%;
+    /* Yorqin osmon palitrasi */
+    --background: 205 85% 94%;
+    --foreground: 230 50% 18%;
 
-    --card: 240 15% 14%;
-    --card-foreground: 45 100% 96%;
+    --card: 0 0% 100%;
+    --card-foreground: 230 50% 18%;
 
-    --popover: 240 15% 14%;
-    --popover-foreground: 45 100% 96%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 230 50% 18%;
 
-    --primary: 145 70% 45%;
-    --primary-foreground: 240 20% 8%;
+    --primary: 200 95% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 270 60% 55%;
-    --secondary-foreground: 45 100% 96%;
+    --secondary: 280 80% 65%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 240 15% 20%;
-    --muted-foreground: 240 10% 60%;
+    --muted: 210 40% 92%;
+    --muted-foreground: 220 20% 45%;
 
     --accent: 40 100% 55%;
-    --accent-foreground: 240 20% 8%;
+    --accent-foreground: 230 50% 18%;
 
-    --destructive: 0 80% 55%;
-    --destructive-foreground: 45 100% 96%;
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 240 15% 22%;
-    --input: 240 15% 22%;
-    --ring: 145 70% 45%;
+    --border: 210 50% 85%;
+    --input: 210 50% 90%;
+    --ring: 200 95% 55%;
 
-    --radius: 1rem;
+    --radius: 1.25rem;
 
     /* Game tokens */
     --star-gold: 45 100% 55%;
     --star-diamond: 200 100% 65%;
-    --heart-red: 0 85% 55%;
-    --coin-orange: 30 100% 50%;
-    --neon-green: 145 100% 55%;
-    --neon-blue: 210 100% 60%;
-    --neon-pink: 330 100% 65%;
+    --heart-red: 0 85% 60%;
+    --coin-orange: 30 100% 55%;
+    --neon-green: 145 80% 50%;
+    --neon-blue: 205 100% 60%;
+    --neon-pink: 330 100% 70%;
 
-    --gradient-game: linear-gradient(135deg, hsl(240 30% 12%), hsl(270 40% 15%));
-    --gradient-gold: linear-gradient(135deg, hsl(40 100% 50%), hsl(50 100% 65%));
-    --gradient-neon: linear-gradient(135deg, hsl(145 100% 45%), hsl(180 100% 50%));
-    --gradient-fire: linear-gradient(135deg, hsl(15 100% 55%), hsl(45 100% 55%));
-    --gradient-card: linear-gradient(135deg, hsl(240 15% 16%), hsl(260 15% 20%));
+    --sky-top: 200 100% 85%;
+    --sky-mid: 210 100% 92%;
+    --sky-bot: 320 90% 95%;
 
-    --shadow-neon: 0 0 20px hsl(145 100% 50% / 0.3);
-    --shadow-gold: 0 0 20px hsl(45 100% 55% / 0.3);
-    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.3);
+    --gradient-sky: linear-gradient(180deg, hsl(200 100% 82%) 0%, hsl(210 100% 90%) 50%, hsl(330 80% 94%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(38 100% 58%) 0%, hsl(48 100% 68%) 50%, hsl(38 100% 58%) 100%);
+    --gradient-neon: linear-gradient(135deg, hsl(200 100% 60%) 0%, hsl(180 100% 55%) 100%);
+    --gradient-fire: linear-gradient(135deg, hsl(15 100% 60%) 0%, hsl(35 100% 60%) 100%);
+    --gradient-pink: linear-gradient(135deg, hsl(320 100% 70%) 0%, hsl(280 90% 65%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100% / 0.95) 0%, hsl(210 60% 98% / 0.95) 100%);
 
-    --font-display: 'Fredoka One', cursive;
-    --font-body: 'Nunito', sans-serif;
+    --shadow-3d: 0 6px 0 hsl(var(--primary) / 0.25), 0 10px 20px -4px hsl(220 50% 40% / 0.25);
+    --shadow-gold-3d: 0 6px 0 hsl(35 100% 45% / 0.5), 0 10px 20px -4px hsl(35 100% 50% / 0.35);
+    --shadow-fire-3d: 0 6px 0 hsl(15 100% 45% / 0.5), 0 10px 20px -4px hsl(15 100% 50% / 0.35);
+    --shadow-pink-3d: 0 6px 0 hsl(320 80% 45% / 0.5), 0 10px 20px -4px hsl(320 80% 55% / 0.35);
+    --shadow-card: 0 8px 24px -6px hsl(220 50% 40% / 0.2), 0 2px 4px hsl(220 50% 40% / 0.08);
 
-    --sidebar-background: 240 15% 14%;
-    --sidebar-foreground: 45 100% 96%;
-    --sidebar-primary: 145 70% 45%;
-    --sidebar-primary-foreground: 240 20% 8%;
-    --sidebar-accent: 240 15% 20%;
-    --sidebar-accent-foreground: 45 100% 96%;
-    --sidebar-border: 240 15% 22%;
-    --sidebar-ring: 145 70% 45%;
+    --font-display: 'Times New Roman', 'Times', serif;
+    --font-body: 'Times New Roman', 'Times', serif;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 230 50% 18%;
+    --sidebar-primary: 200 95% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 92%;
+    --sidebar-accent-foreground: 230 50% 18%;
+    --sidebar-border: 210 50% 85%;
+    --sidebar-ring: 200 95% 55%;
   }
 }
 
@@ -75,12 +81,17 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    background: var(--gradient-sky);
+    background-attachment: fixed;
+    @apply text-foreground;
     font-family: var(--font-body);
+    font-weight: 500;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
+    font-weight: 700;
+    font-style: normal;
   }
 }
 
@@ -88,40 +99,73 @@
   .game-card {
     background: var(--gradient-card);
     box-shadow: var(--shadow-card);
-    @apply rounded-2xl border border-border p-4;
+    backdrop-filter: blur(10px);
+    @apply rounded-3xl border-2 border-white/60 p-4;
+  }
+
+  /* 3D tugmalar */
+  .btn-3d {
+    @apply font-bold rounded-2xl px-6 py-3 transition-all duration-150 relative border-2 active:translate-y-1;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    font-family: var(--font-display);
   }
 
   .btn-neon {
     background: var(--gradient-neon);
-    box-shadow: var(--shadow-neon);
-    @apply text-background font-bold rounded-xl px-6 py-3 transition-all duration-200;
+    box-shadow: var(--shadow-3d);
+    color: white;
+    border: 2px solid hsl(200 100% 75%);
+    @apply font-bold rounded-2xl px-6 py-3 transition-all duration-150 active:translate-y-1 active:shadow-sm;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    font-family: var(--font-display);
   }
   .btn-neon:hover {
-    box-shadow: 0 0 30px hsl(145 100% 50% / 0.5);
-    transform: scale(1.05);
+    filter: brightness(1.08);
+    transform: translateY(-1px);
   }
 
   .btn-gold {
     background: var(--gradient-gold);
-    box-shadow: var(--shadow-gold);
-    @apply text-background font-bold rounded-xl px-6 py-3 transition-all duration-200;
+    box-shadow: var(--shadow-gold-3d);
+    color: hsl(25 80% 20%);
+    border: 2px solid hsl(50 100% 80%);
+    @apply font-bold rounded-2xl px-6 py-3 transition-all duration-150 active:translate-y-1 active:shadow-sm;
+    text-shadow: 0 1px 1px rgba(255,255,255,0.4);
+    font-family: var(--font-display);
   }
   .btn-gold:hover {
-    box-shadow: 0 0 30px hsl(45 100% 55% / 0.5);
-    transform: scale(1.05);
+    filter: brightness(1.08);
+    transform: translateY(-1px);
   }
 
   .btn-fire {
     background: var(--gradient-fire);
-    @apply text-foreground font-bold rounded-xl px-6 py-3 transition-all duration-200;
+    box-shadow: var(--shadow-fire-3d);
+    color: white;
+    border: 2px solid hsl(35 100% 75%);
+    @apply font-bold rounded-2xl px-6 py-3 transition-all duration-150 active:translate-y-1 active:shadow-sm;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    font-family: var(--font-display);
   }
+  .btn-fire:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+  .btn-pink {
+    background: var(--gradient-pink);
+    box-shadow: var(--shadow-pink-3d);
+    color: white;
+    border: 2px solid hsl(320 100% 85%);
+    @apply font-bold rounded-2xl px-6 py-3 transition-all duration-150 active:translate-y-1 active:shadow-sm;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    font-family: var(--font-display);
+  }
+  .btn-pink:hover { filter: brightness(1.08); transform: translateY(-1px); }
 
   .glow-text {
-    text-shadow: 0 0 10px hsl(var(--neon-green) / 0.5);
+    text-shadow: 0 2px 8px hsl(var(--primary) / 0.4), 0 0 2px white;
   }
 
   .star-glow {
-    filter: drop-shadow(0 0 8px hsl(45 100% 55% / 0.6));
+    filter: drop-shadow(0 0 10px hsl(45 100% 55% / 0.7));
   }
 
   .heart-pulse {
@@ -132,20 +176,38 @@
     animation: float 3s ease-in-out infinite;
   }
 
+  .bounce-anim {
+    animation: bounce 2s ease-in-out infinite;
+  }
+
+  .spin-slow {
+    animation: spinSlow 8s linear infinite;
+  }
+
   .tab-active {
     @apply text-primary;
-    filter: drop-shadow(0 0 6px hsl(var(--primary) / 0.5));
+    filter: drop-shadow(0 2px 4px hsl(var(--primary) / 0.5));
   }
 }
 
 @keyframes heartPulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
+  50% { transform: scale(1.18); }
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-6px) scale(1.04); }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @keyframes slideUp {
@@ -156,4 +218,9 @@
 @keyframes sparkle {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.6; transform: scale(1.2); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }

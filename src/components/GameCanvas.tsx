@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useGame } from '@/contexts/GameContext';
+import { playSound } from '@/lib/sounds';
 import starImg from '@/assets/star.png';
-import gameBg from '@/assets/game-bg.jpg';
+import gameBg from '@/assets/sky-bg.jpg';
 import skinGreen from '@/assets/skin-green.png';
 import skinFire from '@/assets/skin-fire.png';
 import skinIce from '@/assets/skin-ice.png';
@@ -18,24 +19,15 @@ const SKIN_IMAGES: Record<string, string> = {
   diamond: skinDiamond,
 };
 
-// Star spawn chance per skin tier
-const SKIN_STAR_CHANCE: Record<string, number> = {
-  green: 0.4,
-  fire: 0.5,
-  ice: 0.55,
-  gold: 0.65,
-  neon: 0.75,
-  diamond: 0.85,
-};
-
-// Star multiplier per skin tier (max 4x)
-const SKIN_STAR_MULTIPLIER: Record<string, number> = {
-  green: 1,
-  fire: 1,
-  ice: 2,
-  gold: 3,
-  neon: 4,
-  diamond: 4,
+// Yulduz har N ta ustunda 1 marta chiqadi (kichik = tez-tez):
+// Green=6, Fire=5, Ice=5, Gold=4, Neon=3, Diamond=2
+const SKIN_STAR_INTERVAL: Record<string, number> = {
+  green: 6,
+  fire: 5,
+  ice: 5,
+  gold: 4,
+  neon: 3,
+  diamond: 2,
 };
 
 interface Star {
@@ -84,6 +76,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
     stars: [] as Star[],
     frameCount: 0,
     score: 0,
+    pipeIndex: 0,
     bgX: 0,
     isRunning: false,
     dragonImage: null as HTMLImageElement | null,
@@ -116,6 +109,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
     g.stars = [];
     g.frameCount = 0;
     g.score = 0;
+    g.pipeIndex = 0;
     g.isRunning = true;
     setScore(0);
     setSessionStars(0);
@@ -130,6 +124,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
     }
     if (gameRef.current.isRunning) {
       gameRef.current.velocity = LIFT;
+      playSound('flap');
     }
   }, [showStart, startGame]);
 
@@ -257,6 +252,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
         const gapCenter = 120 + Math.random() * (H - 240);
         const topY = gapCenter - gap / 2;
 
+        g.pipeIndex++;
         g.pipes.push({
           x: W,
           topY,
@@ -266,11 +262,9 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
           width: PIPE_WIDTH,
         });
 
-        // Stars in gap - always 1 star max
-        const skinName = g.currentSkin;
-        const starChance = SKIN_STAR_CHANCE[skinName] || 0.4;
-
-        if (Math.random() < starChance) {
+        // Yulduzlar: har N ustunda 1 marta 1 ta yulduz (multiplier yo'q)
+        const interval = SKIN_STAR_INTERVAL[g.currentSkin] || 6;
+        if (g.pipeIndex % interval === 0) {
           g.stars.push({
             x: W + PIPE_WIDTH / 2,
             y: gapCenter,
@@ -294,6 +288,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
           pipe.passed = true;
           g.score++;
           setScore(g.score);
+          playSound('score');
         }
       });
 
@@ -322,9 +317,9 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
         const dy = star.y - cy;
         if (Math.sqrt(dx * dx + dy * dy) < 40) {
           star.collected = true;
-          const multiplier = SKIN_STAR_MULTIPLIER[g.currentSkin] || 1;
-          addStars(multiplier);
-          setSessionStars(prev => prev + multiplier);
+          addStars(1);
+          setSessionStars(prev => prev + 1);
+          playSound('star');
         }
       });
 
@@ -352,6 +347,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
       if (g.playerY < 0 || g.playerY + DRAGON_SIZE > H) {
         g.isRunning = false;
         setIsPlaying(false);
+        playSound('die');
         onGameOver(g.score, sessionStars);
         animId = requestAnimationFrame(loop);
         return;
@@ -367,6 +363,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
         ) {
           g.isRunning = false;
           setIsPlaying(false);
+          playSound('die');
           onGameOver(g.score, sessionStars);
           animId = requestAnimationFrame(loop);
           return;
@@ -378,6 +375,7 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
         ) {
           g.isRunning = false;
           setIsPlaying(false);
+          playSound('die');
           onGameOver(g.score, sessionStars);
           animId = requestAnimationFrame(loop);
           return;

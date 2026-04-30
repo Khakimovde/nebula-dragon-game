@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from '@/contexts/GameContext';
-import { Check, Hash, Gift, ExternalLink, Loader2, Users } from 'lucide-react';
+import { Check, Hash, ExternalLink, Loader2 } from 'lucide-react';
 import AdComponent from '@/components/AdComponent';
 import { toast } from 'sonner';
+import giftIcon from '@/assets/icon-gift.png';
+import adIcon from '@/assets/icon-ad.png';
+import referralIcon from '@/assets/icon-referral.png';
 
 const DAILY_BONUS = [
   { day: 1, reward: 10, type: 'stars' },
@@ -150,12 +153,14 @@ const TasksScreen: React.FC = () => {
         <Hash className="text-accent" size={24} /> Vazifalar
       </h2>
 
-      {/* Daily Bonus */}
-      <div className="game-card mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Gift className="text-accent" size={20} />
-          <span className="font-bold text-sm text-foreground">Kunlik bonus</span>
-          <span className="text-xs text-muted-foreground ml-auto">Kun {dailyBonusDay}/7</span>
+      {/* Daily Bonus - kattaroq */}
+      <div className="game-card mb-4 relative overflow-hidden">
+        <div className="flex items-center gap-3 mb-3">
+          <img src={giftIcon} alt="" className="w-14 h-14 bounce-anim" />
+          <div className="flex-1">
+            <h3 className="font-bold text-lg text-foreground">🎁 Kunlik bonus</h3>
+            <span className="text-xs text-muted-foreground">Kun {dailyBonusDay}/7</span>
+          </div>
         </div>
         <div className="grid grid-cols-7 gap-1 mb-3">
           {DAILY_BONUS.map((bonus, i) => {
@@ -210,12 +215,14 @@ const TasksScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Daily Referral Task */}
+      {/* Daily Referral Task - PNG bilan */}
       <div className="game-card mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="text-neon-blue" size={20} />
-          <span className="font-bold text-sm text-foreground">Kunlik referal vazifasi</span>
-          <span className="text-xs text-muted-foreground ml-auto">Har kuni yangilanadi</span>
+        <div className="flex items-center gap-3 mb-3">
+          <img src={referralIcon} alt="" className="w-12 h-12 float-anim" />
+          <div className="flex-1">
+            <h3 className="font-bold text-base text-foreground">👥 Kunlik referal vazifasi</h3>
+            <span className="text-[11px] text-muted-foreground">Har kuni 00:01 da yangilanadi</span>
+          </div>
         </div>
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-muted-foreground">Bugun chaqirilgan:</span>
@@ -259,20 +266,20 @@ const TasksScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Ad watch for stars */}
+      {/* Ad watch for stars - PNG bilan */}
       <div className="game-card mb-4 flex items-center gap-3">
-        <span className="text-2xl">📺</span>
+        <img src={adIcon} alt="" className="w-14 h-14 bounce-anim" />
         <div className="flex-1">
-          <p className="font-bold text-sm text-foreground">Reklama ko'rish</p>
-          <p className="text-xs text-accent">+15 ⭐ har bir reklama</p>
-          <p className="text-[10px] text-muted-foreground">{userAdCount}/{adDailyLimit} kunlik limit</p>
+          <p className="font-bold text-base text-foreground">📺 Reklama ko'rish</p>
+          <p className="text-sm text-accent font-bold">+15 ⭐ har bir reklama</p>
+          <p className="text-[11px] text-muted-foreground">{userAdCount}/{adDailyLimit} kunlik limit</p>
         </div>
         {adLimitReached ? (
-          <span className="text-xs text-muted-foreground font-bold px-3 py-1.5 bg-muted rounded-lg">Limit tugadi</span>
+          <span className="text-xs text-muted-foreground font-bold px-3 py-1.5 bg-muted rounded-lg">Limit</span>
         ) : (
           <AdComponent
             onReward={handleAdStarReward}
-            className="btn-neon text-xs py-1.5 px-3 watch-ad"
+            className="btn-neon text-sm py-2 px-4 watch-ad"
           >
             Ko'rish
           </AdComponent>

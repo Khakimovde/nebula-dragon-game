@@ -60,6 +60,28 @@ Deno.serve(async (req) => {
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
+  // Majburiy kanal obunasini tekshirish
+  async function checkTelegramSubscription(telegramUserId: number): Promise<boolean> {
+    try {
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      const TELEGRAM_API_KEY = Deno.env.get('TELEGRAM_API_KEY');
+      if (!LOVABLE_API_KEY || !TELEGRAM_API_KEY) return false;
+      const res = await fetch('https://connector-gateway.lovable.dev/telegram/getChatMember', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'X-Connection-Api-Key': TELEGRAM_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ chat_id: '@Star_Dragonn', user_id: telegramUserId }),
+      });
+      const data = await res.json();
+      const status = data.result?.status;
+      return ['member', 'administrator', 'creator'].includes(status || '');
+    } catch { return false; }
+  }
+
+
   try {
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
@@ -104,15 +126,22 @@ Deno.serve(async (req) => {
               .single();
 
             if (referrer) {
-              const { error: refErr } = await supabase.from('referrals').insert({
-                referrer_id: referrer.id,
-                referred_id: user.id,
-              });
-              if (!refErr) {
-                await supabase.from('users').update({
-                  stars: (await supabase.from('users').select('stars').eq('id', referrer.id).single()).data!.stars + 100,
-                  referrals: (await supabase.from('users').select('referrals').eq('id', referrer.id).single()).data!.referrals + 1,
-                }).eq('id', referrer.id);
+              // MAJBURIY: obuna tekshirish - faqat @Star_Dragonn kanaliga obuna bo'lsa referal hisoblanadi
+              const isSubscribed = await checkTelegramSubscription(telegram_id);
+              if (isSubscribed) {
+                const { error: refErr } = await supabase.from('referrals').insert({
+                  referrer_id: referrer.id,
+                  referred_id: user.id,
+                });
+                if (!refErr) {
+                  const { data: refData } = await supabase.from('users').select('stars, referrals').eq('id', referrer.id).single();
+                  if (refData) {
+                    await supabase.from('users').update({
+                      stars: refData.stars + 100,
+                      referrals: refData.referrals + 1,
+                    }).eq('id', referrer.id);
+                  }
+                }
               }
             }
           }
