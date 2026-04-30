@@ -60,6 +60,28 @@ Deno.serve(async (req) => {
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
+  // Majburiy kanal obunasini tekshirish
+  async function checkTelegramSubscription(telegramUserId: number): Promise<boolean> {
+    try {
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      const TELEGRAM_API_KEY = Deno.env.get('TELEGRAM_API_KEY');
+      if (!LOVABLE_API_KEY || !TELEGRAM_API_KEY) return false;
+      const res = await fetch('https://connector-gateway.lovable.dev/telegram/getChatMember', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'X-Connection-Api-Key': TELEGRAM_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ chat_id: '@Star_Dragonn', user_id: telegramUserId }),
+      });
+      const data = await res.json();
+      const status = data.result?.status;
+      return ['member', 'administrator', 'creator'].includes(status || '');
+    } catch { return false; }
+  }
+
+
   try {
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
