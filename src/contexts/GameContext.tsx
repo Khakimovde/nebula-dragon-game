@@ -311,10 +311,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [converting, setConverting] = useState(false);
 
   const convertStarsToCoins = useCallback(async (): Promise<boolean> => {
-    if (user.stars < 150000 || converting) return false;
+    if (user.stars < 7000 || converting) return false;
     setConverting(true);
     try {
-      const data = await gameApi('convert_stars', { telegram_id: user.telegram_id });
+      const data = await gameApi('convert_stars', { telegram_id: user.telegram_id, stars_amount: 7000 });
       if (data.success) {
         setUser(prev => ({ ...prev, stars: data.stars, coins: data.coins }));
         return true;
