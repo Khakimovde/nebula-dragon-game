@@ -67,7 +67,8 @@ Deno.serve(async (req) => {
     const updates = data.result ?? [];
     if (updates.length === 0) continue;
 
-    for (const update of updates) {
+    // Updates'ni parallel qayta ishlash — javobni tezroq yetkazish uchun
+    await Promise.all(updates.map(async (update: any) => {
       try {
         if (update.message?.text?.startsWith('/start')) {
           await handleStart(update.message, supabase);
@@ -78,7 +79,7 @@ Deno.serve(async (req) => {
       } catch (e) {
         console.error('Error processing update:', e);
       }
-    }
+    }));
 
     const newOffset = Math.max(...updates.map((u: any) => u.update_id)) + 1;
     await supabase
