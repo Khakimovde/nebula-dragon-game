@@ -493,40 +493,62 @@ Deno.serve(async (req) => {
         return ok({ total_ads: totalAds || 0, today_ads: todayAds || 0 });
       }
 
-      // ===== LEADERBOARD: GET TOP 20 =====
+      // ===== LEADERBOARD: GET TOP 20 (Haftalik — har dushanba qaytadan boshlanadi) =====
       case 'get_leaderboard': {
-        // Use users.referrals column directly (tracks total referrals reliably)
-        const { data: topUsers } = await supabase
-          .from('users')
-          .select('id, telegram_id, username, first_name, photo_url, referrals')
-          .gt('referrals', 0)
-          .order('referrals', { ascending: false })
-          .limit(20);
+        // Joriy hafta dushanbasi 00:01 UZT dan boshlab referrals.created_at bo'yicha hisoblash
+        const { start: weekStart, end: weekEnd } = getUZTWeekBounds();
+
+        // Shu haftada qilingan barcha referallarni olish
+        const { data: weekRefs } = await supabase
+          .from('referrals')
+          .select('referrer_id')
+          .gte('created_at', weekStart)
+          .lt('created_at', weekEnd);
+
+        // Har bir referrer bo'yicha hisoblash
+        const counts: Record<string, number> = {};
+        (weekRefs || []).forEach((r: any) => {
+          counts[r.referrer_id] = (counts[r.referrer_id] || 0) + 1;
+        });
+
+        const sortedIds = Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 20);
 
         const REWARDS = Array.from({ length: 20 }, (_, i) => 1000 - i * 50);
 
-        const leaderboard = (topUsers || []).map((u: any, i: number) => ({
-          rank: i + 1,
-          user: { id: u.id, telegram_id: u.telegram_id, username: u.username, first_name: u.first_name, photo_url: u.photo_url },
-          referral_count: u.referrals,
-          reward_coins: REWARDS[i],
-        }));
+        // Top 20 foydalanuvchilarni olish
+        const ids = sortedIds.map(([id]) => id);
+        const { data: usersData } = ids.length > 0
+          ? await supabase.from('users').select('id, telegram_id, username, first_name, photo_url').in('id', ids)
+          : { data: [] as any[] };
 
-        // Find requesting user's rank
+        const usersMap = new Map((usersData || []).map((u: any) => [u.id, u]));
+
+        const leaderboard = sortedIds.map(([userId, refCount], i) => {
+          const u = usersMap.get(userId) as any;
+          return {
+            rank: i + 1,
+            user: u ? { id: u.id, telegram_id: u.telegram_id, username: u.username, first_name: u.first_name, photo_url: u.photo_url } : { id: userId },
+            referral_count: refCount,
+            reward_coins: REWARDS[i],
+          };
+        });
+
+        // O'z reytingimni topish
         let myRank = null;
         if (body.telegram_id) {
-          const { data: me } = await supabase.from('users').select('id, referrals').eq('telegram_id', body.telegram_id).single();
-          if (me && me.referrals > 0) {
-            // Count how many users have more referrals
-            const { count } = await supabase
-              .from('users')
-              .select('*', { count: 'exact', head: true })
-              .gt('referrals', me.referrals);
-            myRank = (count || 0) + 1;
+          const { data: me } = await supabase.from('users').select('id').eq('telegram_id', body.telegram_id).single();
+          if (me) {
+            const myCount = counts[me.id] || 0;
+            if (myCount > 0) {
+              myRank = Object.values(counts).filter(c => c > myCount).length + 1;
+            }
           }
         }
 
-        return ok({ leaderboard, my_rank: myRank });
+        // Keyingi yangilanish vaqti — keyingi dushanba 00:01 UZT
+        return ok({ leaderboard, my_rank: myRank, week_start: weekStart, next_reset: weekEnd });
       }
 
       // ===== DAILY REFERRAL PROGRESS =====
