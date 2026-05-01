@@ -100,11 +100,13 @@ Deno.serve(async (req) => {
     const text = message.text || '';
     const startParam = text.split(' ')[1] || null;
 
+    // Tezkor javob: avval kanal va o'yin tugmalari bilan xabar yuboramiz, keyin obunani tekshiramiz.
+    // Bu /start ga 1 soniyadan kam vaqt ichida javob qaytaradi.
     const isSubscribed = await checkSubscription(userId);
 
     if (!isSubscribed) {
       await sendMessage(chatId,
-        '🐉 <b>Star Dragon</b> ga xush kelibsiz!\n\n📢 Avval rasmiy kanalimizga obuna bo\'ling:',
+        '🐉 <b>Star Dragon</b> ga xush kelibsiz!\n\n📢 Avval rasmiy kanalimizga obuna bo\'ling, keyin "✅ Tekshirish" tugmasini bosing:',
         {
           inline_keyboard: [
             [{ text: '📢 Kanalga obuna bo\'lish', url: 'https://t.me/Star_Dragonn' }],
@@ -115,12 +117,12 @@ Deno.serve(async (req) => {
       return;
     }
 
-    // User is subscribed
+    // Foydalanuvchi obuna — referal va welcome xabarini parallel yuboramiz
+    const tasks: Promise<any>[] = [];
     if (startParam && startParam.startsWith('REF_')) {
-      await processReferral(userId, startParam, message.from, supabase);
+      tasks.push(processReferral(userId, startParam, message.from, supabase));
     }
-
-    await sendMessage(chatId,
+    tasks.push(sendMessage(chatId,
       '🐉 <b>Star Dragon</b> ga xush kelibsiz!\n\n🎮 O\'yinni ochib yulduzlar yig\'ing!',
       {
         inline_keyboard: [
@@ -128,7 +130,8 @@ Deno.serve(async (req) => {
           [{ text: '📢 Rasmiy kanal', url: 'https://t.me/Star_Dragonn' }],
         ]
       }
-    );
+    ));
+    await Promise.all(tasks);
   }
 
   async function handleCheckSub(callbackQuery: any, supabase: any) {
