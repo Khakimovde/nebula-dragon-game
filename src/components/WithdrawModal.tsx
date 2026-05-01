@@ -93,20 +93,27 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ open, onClose }) => {
         </div>
 
         <div className="mb-4">
-          <label className="text-xs text-muted-foreground mb-1 block">Miqdor (so'm)</label>
+          <label className="text-xs text-muted-foreground mb-1 block">Coin miqdori</label>
           <input
             type="number"
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
-            placeholder="10000"
-            min={10000}
+            value={coinsAmount}
+            onChange={e => setCoinsAmount(e.target.value)}
+            placeholder="6000"
+            min={6000}
             className="w-full bg-muted text-foreground rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
           />
-          <p className="text-[10px] text-muted-foreground mt-1">Minimal: 10,000 so'm · Balans: {user.coins.toLocaleString()} coin</p>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Minimal: 6,000 🪙 (5,000 so'm) · Balans: {user.coins.toLocaleString()} 🪙
+          </p>
+          {numCoins >= 6000 && (
+            <p className="text-[11px] text-accent font-bold mt-1">
+              ✓ Siz {sumAmount.toLocaleString()} so'm olasiz
+            </p>
+          )}
         </div>
 
-        <button onClick={handleSubmit} className="btn-fire w-full">
-          So'rov yuborish
+        <button onClick={handleSubmit} disabled={submitting} className="btn-fire w-full disabled:opacity-50">
+          {submitting ? 'Yuborilmoqda...' : "So'rov yuborish"}
         </button>
       </div>
     </div>
