@@ -286,27 +286,37 @@ Deno.serve(async (req) => {
         return ok({ reward, reward_type: rewardType, day: currentDay, next_day: nextDay });
       }
 
-      // ===== CONVERT STARS TO COINS =====
+      // ===== CONVERT STARS TO COINS (7000⭐ = 5000🪙) =====
       case 'convert_stars': {
-        const { telegram_id } = body;
+        const { telegram_id, stars_amount } = body;
         const { data: user } = await supabase.from('users').select('id, stars, coins').eq('telegram_id', telegram_id).single();
         if (!user) return error('User not found', 404);
-        if (user.stars < 150000) return error('Not enough stars', 400);
+
+        // Default: 7000 stars → 5000 coins (kurs)
+        const RATE_STARS = 7000;
+        const RATE_COINS = 5000;
+        const starsToConvert = stars_amount || RATE_STARS;
+        if (starsToConvert < RATE_STARS || starsToConvert % RATE_STARS !== 0) {
+          return error('stars_amount must be multiple of 7000', 400);
+        }
+        if (user.stars < starsToConvert) return error('Not enough stars', 400);
+        const coinsEarn = (starsToConvert / RATE_STARS) * RATE_COINS;
 
         const { data: updated, error: updateErr } = await supabase.from('users').update({
-          stars: user.stars - 150000,
-          coins: user.coins + 10000,
-        }).eq('id', user.id).gte('stars', 150000).select('stars, coins').single();
-        
+          stars: user.stars - starsToConvert,
+          coins: user.coins + coinsEarn,
+        }).eq('id', user.id).gte('stars', starsToConvert).select('stars, coins').single();
+
         if (updateErr || !updated) return error('Not enough stars', 400);
-        return ok({ success: true, stars: updated.stars, coins: updated.coins });
+        return ok({ success: true, stars: updated.stars, coins: updated.coins, coins_earned: coinsEarn });
       }
 
-      // ===== WITHDRAW =====
+      // ===== WITHDRAW (min 6000 coins = 5000 so'm) =====
       case 'withdraw': {
         const { telegram_id, amount, card_type, card_number } = body;
         const { data: user } = await supabase.from('users').select('id, coins').eq('telegram_id', telegram_id).single();
         if (!user) return error('User not found', 404);
+        if (amount < 6000) return error('Minimal 6000 coin', 400);
         if (user.coins < amount) return error('Not enough coins', 400);
 
         await supabase.from('withdraw_requests').insert({
