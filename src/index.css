@@ -81,7 +81,10 @@
   }
 
   body {
-    background: var(--gradient-sky);
+    background:
+      radial-gradient(ellipse at top, hsl(200 100% 88% / 0.9), transparent 60%),
+      radial-gradient(ellipse at bottom, hsl(330 90% 92% / 0.9), transparent 60%),
+      linear-gradient(180deg, hsl(200 100% 80%) 0%, hsl(220 90% 88%) 35%, hsl(280 80% 92%) 65%, hsl(330 80% 92%) 100%);
     background-attachment: fixed;
     @apply text-foreground;
     font-family: var(--font-body);

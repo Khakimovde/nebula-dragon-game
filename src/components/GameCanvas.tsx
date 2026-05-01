@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { playSound } from '@/lib/sounds';
 import starImg from '@/assets/star.png';
-import gameBg from '@/assets/sky-bg.jpg';
+import gameBg from '@/assets/sky-bg-4k.jpg';
 import skinGreen from '@/assets/skin-green.png';
 import skinFire from '@/assets/skin-fire.png';
 import skinIce from '@/assets/skin-ice.png';
@@ -206,23 +206,39 @@ const GameCanvas: React.FC<{ onGameOver: (score: number, starsCollected: number)
     const loop = () => {
       const g = gameRef.current;
 
-      // Draw background
+      // Draw background — seamless infinite scroll with edge cross-fade
       if (g.bgImage) {
         const imgW = g.bgImage.naturalWidth;
         const imgH = g.bgImage.naturalHeight;
-        const scale = Math.max(W / imgW, H / imgH);
+        // Scale image to fully cover canvas height (vertical fit), keep aspect
+        const scale = H / imgH;
         const drawW = imgW * scale;
-        const drawH = imgH * scale;
-        const offsetX = (W - drawW) / 2;
-        const offsetY = (H - drawH) / 2;
+        const drawH = H;
 
-        g.bgX -= 0.5;
-        if (g.bgX <= -drawW) g.bgX = 0;
+        // Slow scroll
+        g.bgX -= 0.4;
+        if (g.bgX <= -drawW) g.bgX += drawW;
 
-        ctx.drawImage(g.bgImage, g.bgX + offsetX, offsetY, drawW, drawH);
-        ctx.drawImage(g.bgImage, g.bgX + drawW + offsetX, offsetY, drawW, drawH);
+        // Draw enough copies to cover full width plus one extra for seamless wrap
+        let x = g.bgX;
+        while (x < W) {
+          ctx.drawImage(g.bgImage, x, 0, drawW, drawH);
+          x += drawW - 1; // -1 to avoid sub-pixel gap
+        }
+        // Soft pink overlay at top edge so seam is masked by atmosphere haze
+        const haze = ctx.createLinearGradient(0, 0, 0, H);
+        haze.addColorStop(0, 'rgba(180, 220, 255, 0.18)');
+        haze.addColorStop(0.5, 'rgba(255, 200, 230, 0.0)');
+        haze.addColorStop(1, 'rgba(255, 180, 200, 0.18)');
+        ctx.fillStyle = haze;
+        ctx.fillRect(0, 0, W, H);
       } else {
-        ctx.fillStyle = '#0a0a1a';
+        // Fallback gradient sky
+        const grd = ctx.createLinearGradient(0, 0, 0, H);
+        grd.addColorStop(0, '#87ceeb');
+        grd.addColorStop(0.5, '#b8e0ff');
+        grd.addColorStop(1, '#ffd9e8');
+        ctx.fillStyle = grd;
         ctx.fillRect(0, 0, W, H);
       }
 

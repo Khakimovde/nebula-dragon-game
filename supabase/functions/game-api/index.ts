@@ -286,27 +286,37 @@ Deno.serve(async (req) => {
         return ok({ reward, reward_type: rewardType, day: currentDay, next_day: nextDay });
       }
 
-      // ===== CONVERT STARS TO COINS =====
+      // ===== CONVERT STARS TO COINS (7000⭐ = 5000🪙) =====
       case 'convert_stars': {
-        const { telegram_id } = body;
+        const { telegram_id, stars_amount } = body;
         const { data: user } = await supabase.from('users').select('id, stars, coins').eq('telegram_id', telegram_id).single();
         if (!user) return error('User not found', 404);
-        if (user.stars < 150000) return error('Not enough stars', 400);
+
+        // Default: 7000 stars → 5000 coins (kurs)
+        const RATE_STARS = 7000;
+        const RATE_COINS = 5000;
+        const starsToConvert = stars_amount || RATE_STARS;
+        if (starsToConvert < RATE_STARS || starsToConvert % RATE_STARS !== 0) {
+          return error('stars_amount must be multiple of 7000', 400);
+        }
+        if (user.stars < starsToConvert) return error('Not enough stars', 400);
+        const coinsEarn = (starsToConvert / RATE_STARS) * RATE_COINS;
 
         const { data: updated, error: updateErr } = await supabase.from('users').update({
-          stars: user.stars - 150000,
-          coins: user.coins + 10000,
-        }).eq('id', user.id).gte('stars', 150000).select('stars, coins').single();
-        
+          stars: user.stars - starsToConvert,
+          coins: user.coins + coinsEarn,
+        }).eq('id', user.id).gte('stars', starsToConvert).select('stars, coins').single();
+
         if (updateErr || !updated) return error('Not enough stars', 400);
-        return ok({ success: true, stars: updated.stars, coins: updated.coins });
+        return ok({ success: true, stars: updated.stars, coins: updated.coins, coins_earned: coinsEarn });
       }
 
-      // ===== WITHDRAW =====
+      // ===== WITHDRAW (min 6000 coins = 5000 so'm) =====
       case 'withdraw': {
         const { telegram_id, amount, card_type, card_number } = body;
         const { data: user } = await supabase.from('users').select('id, coins').eq('telegram_id', telegram_id).single();
         if (!user) return error('User not found', 404);
+        if (amount < 6000) return error('Minimal 6000 coin', 400);
         if (user.coins < amount) return error('Not enough coins', 400);
 
         await supabase.from('withdraw_requests').insert({
@@ -483,40 +493,62 @@ Deno.serve(async (req) => {
         return ok({ total_ads: totalAds || 0, today_ads: todayAds || 0 });
       }
 
-      // ===== LEADERBOARD: GET TOP 20 =====
+      // ===== LEADERBOARD: GET TOP 20 (Haftalik — har dushanba qaytadan boshlanadi) =====
       case 'get_leaderboard': {
-        // Use users.referrals column directly (tracks total referrals reliably)
-        const { data: topUsers } = await supabase
-          .from('users')
-          .select('id, telegram_id, username, first_name, photo_url, referrals')
-          .gt('referrals', 0)
-          .order('referrals', { ascending: false })
-          .limit(20);
+        // Joriy hafta dushanbasi 00:01 UZT dan boshlab referrals.created_at bo'yicha hisoblash
+        const { start: weekStart, end: weekEnd } = getUZTWeekBounds();
+
+        // Shu haftada qilingan barcha referallarni olish
+        const { data: weekRefs } = await supabase
+          .from('referrals')
+          .select('referrer_id')
+          .gte('created_at', weekStart)
+          .lt('created_at', weekEnd);
+
+        // Har bir referrer bo'yicha hisoblash
+        const counts: Record<string, number> = {};
+        (weekRefs || []).forEach((r: any) => {
+          counts[r.referrer_id] = (counts[r.referrer_id] || 0) + 1;
+        });
+
+        const sortedIds = Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 20);
 
         const REWARDS = Array.from({ length: 20 }, (_, i) => 1000 - i * 50);
 
-        const leaderboard = (topUsers || []).map((u: any, i: number) => ({
-          rank: i + 1,
-          user: { id: u.id, telegram_id: u.telegram_id, username: u.username, first_name: u.first_name, photo_url: u.photo_url },
-          referral_count: u.referrals,
-          reward_coins: REWARDS[i],
-        }));
+        // Top 20 foydalanuvchilarni olish
+        const ids = sortedIds.map(([id]) => id);
+        const { data: usersData } = ids.length > 0
+          ? await supabase.from('users').select('id, telegram_id, username, first_name, photo_url').in('id', ids)
+          : { data: [] as any[] };
 
-        // Find requesting user's rank
+        const usersMap = new Map((usersData || []).map((u: any) => [u.id, u]));
+
+        const leaderboard = sortedIds.map(([userId, refCount], i) => {
+          const u = usersMap.get(userId) as any;
+          return {
+            rank: i + 1,
+            user: u ? { id: u.id, telegram_id: u.telegram_id, username: u.username, first_name: u.first_name, photo_url: u.photo_url } : { id: userId },
+            referral_count: refCount,
+            reward_coins: REWARDS[i],
+          };
+        });
+
+        // O'z reytingimni topish
         let myRank = null;
         if (body.telegram_id) {
-          const { data: me } = await supabase.from('users').select('id, referrals').eq('telegram_id', body.telegram_id).single();
-          if (me && me.referrals > 0) {
-            // Count how many users have more referrals
-            const { count } = await supabase
-              .from('users')
-              .select('*', { count: 'exact', head: true })
-              .gt('referrals', me.referrals);
-            myRank = (count || 0) + 1;
+          const { data: me } = await supabase.from('users').select('id').eq('telegram_id', body.telegram_id).single();
+          if (me) {
+            const myCount = counts[me.id] || 0;
+            if (myCount > 0) {
+              myRank = Object.values(counts).filter(c => c > myCount).length + 1;
+            }
           }
         }
 
-        return ok({ leaderboard, my_rank: myRank });
+        // Keyingi yangilanish vaqti — keyingi dushanba 00:01 UZT
+        return ok({ leaderboard, my_rank: myRank, week_start: weekStart, next_reset: weekEnd });
       }
 
       // ===== DAILY REFERRAL PROGRESS =====

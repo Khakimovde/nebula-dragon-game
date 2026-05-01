@@ -15,6 +15,7 @@ const RatingScreen: React.FC = () => {
   const { user } = useGame();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [myRank, setMyRank] = useState<number | null>(null);
+  const [nextReset, setNextReset] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const gameApi = async (action: string, body: any = {}) => {
@@ -39,6 +40,7 @@ const RatingScreen: React.FC = () => {
       const data = await gameApi('get_leaderboard', { telegram_id: user.telegram_id });
       setLeaderboard(data.leaderboard || []);
       setMyRank(data.my_rank);
+      setNextReset(data.next_reset || null);
     } catch (e) {
       console.error('Failed to load leaderboard:', e);
     } finally {
@@ -47,6 +49,15 @@ const RatingScreen: React.FC = () => {
   };
 
   const getUserDisplay = (u: any) => u?.username || u?.first_name || 'Player';
+
+  const formatNextReset = () => {
+    if (!nextReset) return '';
+    const d = new Date(nextReset);
+    const days = Math.ceil((d.getTime() - Date.now()) / 86400000);
+    if (days <= 0) return 'tez orada';
+    if (days === 1) return 'ertaga';
+    return `${days} kundan keyin`;
+  };
 
   if (loading) {
     return (
@@ -67,8 +78,11 @@ const RatingScreen: React.FC = () => {
       <h2 className="font-display text-xl text-foreground mb-1 flex items-center gap-2">
         <Trophy className="text-accent" size={24} /> Top reyting
       </h2>
-      <p className="text-xs text-muted-foreground mb-4">
-        Referal chaqirishlar bo'yicha • Top 20 ga tangalar beriladi
+      <p className="text-xs text-muted-foreground mb-1">
+        Haftalik referal bo'yicha • Top 20 ga 🪙 tangalar
+      </p>
+      <p className="text-[11px] text-primary font-bold mb-4">
+        ⏰ Yangilanish: {formatNextReset()} (har dushanba 00:01 UZT)
       </p>
 
       {/* Top 3 Podium */}

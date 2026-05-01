@@ -70,36 +70,36 @@ const ProfileScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Stars → Coins conversion */}
+      {/* Stars → Coins conversion (7000⭐ = 5000🪙) */}
       <div className="game-card mb-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-foreground font-bold">Yulduzni coinlarga aylantirish</span>
+          <span className="text-sm text-foreground font-bold">Yulduzni coinga aylantirish</span>
           <ArrowRightLeft size={16} className="text-muted-foreground" />
         </div>
-        <p className="text-xs text-muted-foreground mb-3">150,000 ⭐ = 10,000 coin</p>
+        <p className="text-xs text-muted-foreground mb-3">Kurs: 7,000 ⭐ = 5,000 🪙</p>
         <button
           onClick={() => convertStarsToCoins()}
-          disabled={user.stars < 150000}
-          className={user.stars >= 150000 ? 'btn-gold w-full' : 'w-full py-3 rounded-xl bg-muted text-muted-foreground font-bold cursor-not-allowed'}
+          disabled={user.stars < 7000}
+          className={user.stars >= 7000 ? 'btn-gold w-full' : 'w-full py-3 rounded-xl bg-muted text-muted-foreground font-bold cursor-not-allowed'}
         >
-          Aylantirish
+          Aylantirish (7,000⭐ → 5,000🪙)
         </button>
       </div>
 
-      {/* Withdraw */}
+      {/* Withdraw — minimal 6000 coin = 5000 so'm */}
       <div className="game-card mb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-foreground font-bold flex items-center gap-2">
             <CreditCard size={16} /> Pul yechish
           </span>
         </div>
-        <p className="text-xs text-muted-foreground mb-1">10,000 coin = 10,000 so'm</p>
-        <p className="text-xs text-muted-foreground mb-3">Minimal: 10,000 coin (10,000 so'm)</p>
+        <p className="text-xs text-muted-foreground mb-1">Kurs: 6,000 🪙 = 5,000 so'm</p>
+        <p className="text-xs text-muted-foreground mb-3">Minimal: 6,000 coin (5,000 so'm)</p>
         <p className="text-xs text-destructive/80 mb-3">⚠️ To'lov 7 ish kuni ichida amalga oshiriladi</p>
         <button
           onClick={() => setShowWithdraw(true)}
-          disabled={user.coins < 10000}
-          className={user.coins >= 10000 ? 'btn-fire w-full' : 'w-full py-3 rounded-xl bg-muted text-muted-foreground font-bold cursor-not-allowed'}
+          disabled={user.coins < 6000}
+          className={user.coins >= 6000 ? 'btn-fire w-full' : 'w-full py-3 rounded-xl bg-muted text-muted-foreground font-bold cursor-not-allowed'}
         >
           💵 Pul yechish
         </button>
