@@ -12,37 +12,43 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ open, onClose }) => {
   const { user, addWithdrawRequest } = useGame();
   const [cardType, setCardType] = useState<'uzcard' | 'humo'>('uzcard');
   const [cardNumber, setCardNumber] = useState('');
-  const [amount, setAmount] = useState('');
+  const [coinsAmount, setCoinsAmount] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   if (!open) return null;
 
+  // Kurs: 6000 coin = 5000 so'm. So'mdagi miqdor = (coins / 6000) * 5000
+  const numCoins = parseInt(coinsAmount) || 0;
+  const sumAmount = Math.floor((numCoins / 6000) * 5000);
+
   const handleSubmit = () => {
-    const numAmount = parseInt(amount);
+    if (submitting) return;
     if (!cardNumber || cardNumber.replace(/\s/g, '').length !== 16 || !/^\d+$/.test(cardNumber.replace(/\s/g, ''))) {
       toast.error('Karta raqami 16 ta raqam bo\'lishi kerak!');
       return;
     }
-    if (!numAmount || numAmount < 10000) {
-      toast.error('Minimal miqdor: 10,000 so\'m');
+    if (!numCoins || numCoins < 6000) {
+      toast.error('Minimal miqdor: 6,000 coin (5,000 so\'m)');
       return;
     }
-    if (user.coins < numAmount) {
+    if (user.coins < numCoins) {
       toast.error('Yetarli coin yo\'q!');
       return;
     }
 
+    setSubmitting(true);
     addWithdrawRequest({
       user_id: String(user.telegram_id),
-      amount: numAmount,
+      amount: numCoins,
       card_type: cardType,
       card_number: cardNumber.replace(/\s/g, ''),
       status: 'pending',
     });
 
-    toast.success("So'rov yuborildi! 7 ish kuni ichida ko'rib chiqiladi.");
+    toast.success(`So'rov yuborildi! ${sumAmount.toLocaleString()} so'm 7 ish kuni ichida o'tkaziladi.`);
     setCardNumber('');
-    setAmount('');
-    onClose();
+    setCoinsAmount('');
+    setTimeout(() => { setSubmitting(false); onClose(); }, 500);
   };
 
   const formatCard = (val: string) => {
