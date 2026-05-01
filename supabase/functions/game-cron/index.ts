@@ -83,20 +83,25 @@ Deno.serve(async () => {
     results.wheel = { processed: expiredRounds.length };
   }
 
-  // ---- WEEKLY LEADERBOARD (Monday 00:01 UZT) ----
+  // ---- WEEKLY LEADERBOARD (Har dushanba 00:01-00:30 UZT oralig'ida) ----
+  // UZT = UTC+5. JS getUTCDay(): 0=Yak, 1=Du, 2=Se ... bu qiymat UZT vaqt bo'yicha.
   const uztNow = new Date(Date.now() + UZB_OFFSET);
-  const dayOfWeek = uztNow.getUTCDay(); // 0=Sun, 1=Mon
+  const dayOfWeek = uztNow.getUTCDay();
   const hour = uztNow.getUTCHours();
   const minute = uztNow.getUTCMinutes();
 
-  // Process on Monday between 00:01 and 00:10 UZT
-  if (dayOfWeek === 1 && hour === 0 && minute >= 1 && minute <= 10) {
-    // Calculate previous week Monday
-    const prevMonday = new Date(uztNow);
-    prevMonday.setUTCDate(prevMonday.getUTCDate() - 7);
+  // Dushanba (1) bo'lsa va vaqt 00:01 dan 00:30 gacha bo'lsa
+  const isMondayMorning = dayOfWeek === 1 && hour === 0 && minute >= 1 && minute <= 30;
+  // Yoki manual trigger uchun
+  const url = new URL((arguments as any)[0]?.url || 'https://x/');
+  const forceWeekly = url.searchParams.get('weekly') === '1';
+
+  if (isMondayMorning || forceWeekly) {
+    // O'tgan haftaning dushanbasini hisoblash (UZT)
+    const prevMonday = new Date(Date.UTC(uztNow.getUTCFullYear(), uztNow.getUTCMonth(), uztNow.getUTCDate() - 7));
     const prevMondayStr = prevMonday.toISOString().split('T')[0];
 
-    // Check if already processed
+    // Allaqachon shu hafta uchun bajarilganmi tekshirish (idempotent)
     const { data: existing } = await supabase
       .from('leaderboard_history')
       .select('id')
@@ -104,7 +109,7 @@ Deno.serve(async () => {
       .limit(1);
 
     if (!existing || existing.length === 0) {
-      // Previous week bounds
+      // O'tgan hafta sanasini UZT bilan hisoblash
       const weekStart = new Date(`${prevMondayStr}T00:01:00+05:00`).toISOString();
       const thisMondayStr = uztNow.toISOString().split('T')[0];
       const weekEnd = new Date(`${thisMondayStr}T00:01:00+05:00`).toISOString();
@@ -115,47 +120,54 @@ Deno.serve(async () => {
         .gte('created_at', weekStart)
         .lt('created_at', weekEnd);
 
-      if (referrals && referrals.length > 0) {
-        const counts: Record<string, number> = {};
-        referrals.forEach((r: any) => {
-          counts[r.referrer_id] = (counts[r.referrer_id] || 0) + 1;
-        });
+      const counts: Record<string, number> = {};
+      (referrals || []).forEach((r: any) => {
+        counts[r.referrer_id] = (counts[r.referrer_id] || 0) + 1;
+      });
 
-        const sorted = Object.entries(counts)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 20);
+      const sorted = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 20);
 
-        const REWARDS = Array.from({ length: 20 }, (_, i) => 1000 - i * 50);
+      // Top20 mukofotlar (1-orin = 1000, 2-orin = 950 ... 20-orin = 50)
+      const REWARDS = Array.from({ length: 20 }, (_, i) => 1000 - i * 50);
 
-        for (let i = 0; i < sorted.length; i++) {
-          const [userId, refCount] = sorted[i];
-          const reward = REWARDS[i];
+      const winners: any[] = [];
+      for (let i = 0; i < sorted.length; i++) {
+        const [userId, refCount] = sorted[i];
+        const reward = REWARDS[i];
 
-          // Give coins
-          const { data: u } = await supabase
-            .from('users')
-            .select('coins')
-            .eq('id', userId)
-            .single();
+        const { data: u } = await supabase
+          .from('users')
+          .select('coins, telegram_id, username, first_name')
+          .eq('id', userId)
+          .single();
 
-          if (u) {
-            await supabase.from('users')
-              .update({ coins: u.coins + reward })
-              .eq('id', userId);
-          }
-
-          // Record history
-          await supabase.from('leaderboard_history').insert({
-            user_id: userId,
-            week_start: prevMondayStr,
-            rank: i + 1,
-            referral_count: refCount,
-            reward_coins: reward,
-          });
+        if (u) {
+          await supabase.from('users')
+            .update({ coins: u.coins + reward })
+            .eq('id', userId);
+          winners.push({ user_id: userId, telegram_id: u.telegram_id, username: u.username || u.first_name, rank: i + 1, reward });
         }
 
-        results.leaderboard = { processed: sorted.length };
+        await supabase.from('leaderboard_history').insert({
+          user_id: userId,
+          week_start: prevMondayStr,
+          rank: i + 1,
+          referral_count: refCount,
+          reward_coins: reward,
+        });
       }
+
+      // Yangi hafta - barcha foydalanuvchilarning referrals counterini 0 ga qaytarish
+      // (chunki reyting har dushanba qaytadan boshlanadi)
+      // ESLATMA: ammo umumiy referal sonini saqlab qolish kerak — buni faqat
+      // weekly snapshot qiladi, users.referrals umumiy o'sib boradi.
+      // Shuning uchun reyting endi referrals jadvalidagi haftalik created_at bo'yicha hisoblanishi kerak.
+
+      results.leaderboard = { processed: sorted.length, week: prevMondayStr, winners };
+    } else {
+      results.leaderboard = { skipped: 'already_processed', week: prevMondayStr };
     }
   }
 
