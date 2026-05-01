@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const UZB_OFFSET = 5 * 60 * 60 * 1000;
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -93,7 +93,7 @@ Deno.serve(async () => {
   // Dushanba (1) bo'lsa va vaqt 00:01 dan 00:30 gacha bo'lsa
   const isMondayMorning = dayOfWeek === 1 && hour === 0 && minute >= 1 && minute <= 30;
   // Yoki manual trigger uchun
-  const url = new URL((arguments as any)[0]?.url || 'https://x/');
+  const url = new URL(req.url);
   const forceWeekly = url.searchParams.get('weekly') === '1';
 
   if (isMondayMorning || forceWeekly) {
